@@ -1,0 +1,20 @@
+@token = <your-token>
+
+GET http://127.0.0.1:3000/groups
+Authorization: Bearer {{token}}
+
+###
+###
+# @name getgroups
+GET http://127.0.0.1:3000/groups?groupSearch=abc123
+Authorization: Bearer {{token}}
+
+###
+# @name getplans
+GET http://127.0.0.1:3000/plans?groupId={{getgroups.response.body.$[0].id}}
+Authorization: Bearer {{token}}
+
+###
+# @name getplandetails
+GET http://127.0.0.1:3000/planDetails?groupId={{getgroups.response.body.$[0].id}}&planId={{getplans.response.body.$[0].id}}
+Authorization: Bearer {{token}}
