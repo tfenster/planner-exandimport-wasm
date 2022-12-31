@@ -1,20 +1,25 @@
+## Put in your OAuth token here.
 @token = <your-token>
 
+###
+# Initial test, get all groups
 GET http://127.0.0.1:3000/groups
 Authorization: Bearer {{token}}
 
 ###
-###
+# Get groups with search string
 # @name getgroups
 GET http://127.0.0.1:3000/groups?groupSearch=abc123
 Authorization: Bearer {{token}}
 
 ###
+# Get plans in group
 # @name getplans
 GET http://127.0.0.1:3000/plans?groupId={{getgroups.response.body.$[0].id}}
 Authorization: Bearer {{token}}
 
 ###
+# Get details for plan
 # @name getplandetails
 GET http://127.0.0.1:3000/planDetails?groupId={{getgroups.response.body.$[0].id}}&planId={{getplans.response.body.$[0].id}}
 Authorization: Bearer {{token}}
