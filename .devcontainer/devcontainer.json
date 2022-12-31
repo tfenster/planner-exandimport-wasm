@@ -14,7 +14,7 @@
 	//		}
 	// }
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "cargo install wizer --all-features && curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && sudo mv spin /usr/local/bin/",
+	"postCreateCommand": "cargo install wizer --all-features && curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && sudo mv spin /usr/local/bin/ && dotnet restore",
 	"features": {
 		"ghcr.io/devcontainers/features/rust:1": {}
 	},
