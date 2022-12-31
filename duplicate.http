@@ -1,0 +1,50 @@
+## Put in your OAuth token here.
+@token = <your-token>
+
+###
+# Get source group with search string, replace the groupSearch with whatever works for you
+# @name getsourcegroup
+GET http://127.0.0.1:3000/groups?groupSearch=abc123
+Authorization: Bearer {{token}}
+
+###
+# Get plans in source group
+# @name getsourceplans
+GET http://127.0.0.1:3000/plans?groupId={{getsourcegroup.response.body.$[0].id}}
+Authorization: Bearer {{token}}
+
+###
+# Get target group with search string, replace the groupSearch with whatever works for you
+# @name gettargetgroup
+GET http://127.0.0.1:3000/groups?groupSearch=def456
+Authorization: Bearer {{token}}
+
+###
+# Get plans in target group
+# @name gettargetplans
+GET http://127.0.0.1:3000/plans?groupId={{gettargetgroup.response.body.$[0].id}}
+Authorization: Bearer {{token}}
+
+###
+# Duplicate plan with adjustments
+POST http://127.0.0.1:3000/duplicatePlan?sourceGroupId={{getsourcegroup.response.body.$[0].id}}&sourcePlanId={{getsourceplans.response.body.$[0].id}}&targetGroupId={{gettargetgroup.response.body.$[0].id}}&targetPlanId={{gettargetplans.response.body.$[0].id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "assignmentReplacements": [
+        {
+            "originalAssignment": "f7c51b78-c79d-4806-b340-48e27a111632",
+            "replacementAssignment": "a92dcdd3-c321-43d5-af38-370e77920126"
+        },
+        {
+            "originalAssignment": "a92dcdd3-c321-43d5-af38-370e77920126",
+            "replacementAssignment": "f7c51b78-c79d-4806-b340-48e27a111632"
+        }
+    ],
+    "dateAdjustment": {
+        "originalReferenceDate": "2023-03-22T10:00:00Z",
+        "adjustedReferenceDate": "2023-03-08T10:00:00Z",
+        "replaceWithTodayDate": "2023-02-13T10:00:00+00:00"
+    }
+}
