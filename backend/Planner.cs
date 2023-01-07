@@ -1,7 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using Fermyon.Spin.Sdk;
-using planner_exandimport_wasm.JSON;
+using planner_exandimport_wasm.shared.JSON;
+using planner_exandimport_wasm.backend.JSON;
 using Microsoft.Extensions.Logging;
 
 namespace planner_exandimport_wasm

@@ -1,7 +1,7 @@
 // mostly generated through the excellent "Paste JSON as Code" extension (https://marketplace.visualstudio.com/items?itemName=quicktype.quicktype)
 using System.Text.Json.Serialization;
 
-namespace planner_exandimport_wasm.JSON
+namespace planner_exandimport_wasm.shared.JSON
 {
     public partial class PlanResponse
     {

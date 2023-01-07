@@ -3,7 +3,7 @@ using Fermyon.Spin.Sdk;
 using HttpMethod = Fermyon.Spin.Sdk.HttpMethod;
 using Microsoft.Extensions.Logging;
 
-namespace planner_exandimport_wasm.JSON;
+namespace planner_exandimport_wasm.backend.JSON;
 
 // provides generic convenience methods to make get, post and patch requests
 public class GraphResponse<Type>

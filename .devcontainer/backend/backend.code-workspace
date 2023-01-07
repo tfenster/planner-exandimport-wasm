@@ -5,6 +5,10 @@
 			"name": "Backend"
 		},
 		{
+			"path": "../../shared",
+			"name": "Shared"
+		},
+		{
 			"path": "..",
 			"name": "Configuration"
 		}
