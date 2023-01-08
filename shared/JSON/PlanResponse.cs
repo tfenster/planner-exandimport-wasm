@@ -29,6 +29,9 @@ namespace planner_exandimport_wasm.shared.JSON
         [JsonPropertyName("owner")]
         public string? Owner { get; set; }
 
+        [JsonPropertyName("ownedByGraphUser")]
+        public GraphUser? OwnedByGraphUser { get; set; }
+
         [JsonPropertyName("title")]
         public string? Title { get; set; }
 
@@ -38,13 +41,19 @@ namespace planner_exandimport_wasm.shared.JSON
         [JsonPropertyName("createdBy")]
         public CreatedBy? CreatedBy { get; set; }
 
+        [JsonPropertyName("createdByGraphUser")]
+        public GraphUser? CreatedByGraphUser { get; set; }
+
         public Bucket[]? Buckets { get; set; }
 
-        public void Sanitize()
+        public void Sanitize(IPlanner planner)
         {
             if (Buckets != null)
                 foreach (var bucket in Buckets)
                     bucket.Sanitize();
+            if (CreatedBy?.User != null)
+                CreatedByGraphUser = planner.GetGraphUser(CreatedBy.User.Id);
+            OwnedByGraphUser = planner.GetGraphUser(Owner);
         }
     }
 

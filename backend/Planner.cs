@@ -4,11 +4,12 @@ using Fermyon.Spin.Sdk;
 using planner_exandimport_wasm.shared.JSON;
 using planner_exandimport_wasm.backend.JSON;
 using Microsoft.Extensions.Logging;
+using planner_exandimport_wasm.shared;
 
 namespace planner_exandimport_wasm
 {
     // connects to the MS Graph API (https://graph.microsoft.com) and ex- and imports groups, plans, tasks, details etc.
-    public class Planner
+    public class Planner : IPlanner
     {
         // URLs and settings for the Graph connection
         private const string GRAPH_ENDPOINT = "https://graph.microsoft.com";
@@ -19,6 +20,7 @@ namespace planner_exandimport_wasm
         public static string CLIENT_ID = "";
         public static string TENANT = "";
         private static Dictionary<string, string> users = new Dictionary<string, string>();
+        private static Dictionary<string, GraphUser> graphUsers = new Dictionary<string, GraphUser>();
         private string token = "";
 
         public Planner(string token)
@@ -27,7 +29,7 @@ namespace planner_exandimport_wasm
         }
 
         // export a plan and optionally output it as json
-        public Plan[]? Export(bool output = true, bool allowMultiSelect = false, bool retrieveTaskDetail = true)
+        /*public Plan[]? Export(bool output = true, bool allowMultiSelect = false, bool retrieveTaskDetail = true)
         {
             Plan[] plans = SelectPlan(allowMultiSelect);
             if (!allowMultiSelect && plans.Length > 1)
@@ -73,10 +75,10 @@ namespace planner_exandimport_wasm
                 CreateBucket(bucket.PlanId, bucket, true, httpClient, null);
             }
 
-        }
+        }*/
 
         // export a plan and import everything into a new plan
-        public void Import(bool addAssignments)
+        /*public void Import(bool addAssignments)
         {
             Console.WriteLine("Step 1: Select the plan to export");
             var exportedPlan = Export(false)?.FirstOrDefault();
@@ -99,7 +101,7 @@ namespace planner_exandimport_wasm
                     CreateBucket(targetPlan.Id, bucket, addAssignments, httpClient, null);
 
             Console.WriteLine("Import is done");
-        }
+        }*/
 
         private void CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, HttpRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
         {
@@ -239,7 +241,7 @@ namespace planner_exandimport_wasm
             File.WriteAllText(filename, csvString.ToString());
         }*/
 
-        private Bucket? SelectBucket()
+        /*private Bucket? SelectBucket()
         {
             var exportedPlan = Export(false)?.FirstOrDefault();
             if (exportedPlan == null || exportedPlan.Buckets == null)
@@ -256,7 +258,7 @@ namespace planner_exandimport_wasm
                 return exportedPlan.Buckets[selectedBucket];
             }
             throw new Exception("Please select a bucket");
-        }
+        }*/
 
         public Group[]? GetGroups(string? groupSearch = null)
         {
@@ -329,7 +331,7 @@ namespace planner_exandimport_wasm
             var sourcePlanDetails = GetPlanDetails(sourceGroupId, sourcePlanId);
             if (sourcePlanDetails == null)
                 return null;
-            sourcePlanDetails.Sanitize();
+            sourcePlanDetails.Sanitize(this);
 
             var httpClient = PreparePlannerClient();
             // buckets and tasks are always added at the beginning, therefore reversing the order when importing, otherwise e.g. the
@@ -344,6 +346,23 @@ namespace planner_exandimport_wasm
             }
 
             return GetPlanDetails(targetGroupId, targetPlanId);
+        }
+
+        public GraphUser? GetGraphUser(string? userIdOrEmail)
+        {
+            if (string.IsNullOrEmpty(userIdOrEmail))
+                return null;
+
+            GraphUser? graphUser = null;
+            if (graphUsers.TryGetValue(userIdOrEmail, out graphUser))
+                return graphUser;
+
+            var httpRequest = PrepareUsersClient();
+            graphUser = GraphResponse<GraphUser>.Get($"{userIdOrEmail}", httpRequest);
+            if (graphUser != null)
+                graphUsers.Add(userIdOrEmail, graphUser);
+
+            return graphUser;
         }
 
         // allows the user to search for a group, select the right one and then select the right plan
@@ -434,7 +453,7 @@ namespace planner_exandimport_wasm
             return outboundReq;
         }
 
-        private string GetAssigned(Dictionary<string, Assignment> assignments)
+        /*private string GetAssigned(Dictionary<string, Assignment> assignments)
         {
             if (assignments.Values.Count > 0)
             {
@@ -458,9 +477,9 @@ namespace planner_exandimport_wasm
             {
                 return "--";
             }
-        }
+        }*/
 
-        private string? GetUserForEdBy(EdBy edBy)
+        /*private string? GetUserForEdBy(EdBy edBy)
         {
             if (edBy == null || edBy.User == null || edBy.User.Id == null)
                 return null;
@@ -472,9 +491,9 @@ namespace planner_exandimport_wasm
                 var user = GetUserForId(id);
                 return GetUserForId(id);
             }
-        }
+        }*/
 
-        private string? GetUserForId(string id)
+        /*private string? GetUserForId(string id)
         {
             if (id == null)
                 return null;
@@ -485,7 +504,7 @@ namespace planner_exandimport_wasm
                 var httpClient = PrepareUsersClient();
                 try
                 {
-                    var user = GraphResponse<UserResponse>.Get(id, httpClient);
+                    var user = GraphResponse<GraphUser>.Get(id, httpClient);
                     if (user == null || user.DisplayName == null)
                         return null;
                     users.Add(id, user.DisplayName);
@@ -496,6 +515,6 @@ namespace planner_exandimport_wasm
                     return null;
                 }
             }
-        }
+        }*/
     }
 }

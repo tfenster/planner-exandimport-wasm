@@ -144,6 +144,6 @@ namespace planner_exandimport_wasm.shared.JSON
     public partial class EdBy
     {
         [JsonPropertyName("user")]
-        public User? User { get; set; }
+        public GraphUser? User { get; set; }
     }
 }

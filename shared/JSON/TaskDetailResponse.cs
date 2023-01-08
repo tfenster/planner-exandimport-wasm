@@ -72,16 +72,7 @@ namespace planner_exandimport_wasm.shared.JSON
     public partial class LastModifiedBy
     {
         [JsonPropertyName("user")]
-        public User? User { get; set; }
-    }
-
-    public partial class User
-    {
-        [JsonPropertyName("displayName")]
-        public object? DisplayName { get; set; }
-
-        [JsonPropertyName("id")]
-        public string? Id { get; set; }
+        public GraphUser? User { get; set; }
     }
 
     public partial class Reference

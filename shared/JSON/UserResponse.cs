@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace planner_exandimport_wasm.shared.JSON
 {
-    public partial class UserResponse
+    public partial class GraphUser
     {
         [JsonPropertyName("@odata.context")]
         public Uri? OdataContext { get; set; }
@@ -39,6 +39,6 @@ namespace planner_exandimport_wasm.shared.JSON
         public string? UserPrincipalName { get; set; }
 
         [JsonPropertyName("id")]
-        public Guid Id { get; set; }
+        public string? Id { get; set; }
     }
 }

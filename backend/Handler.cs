@@ -22,6 +22,7 @@ public static class Handler
         { "/plans", PlansHandler },
         { "/planDetails", PlanDetailsHandler },
         { "/duplicatePlan", DuplicatePlanHandler },
+        { "/user", GetUserByIdHandler },
         { "/echo", EchoHandler }
     };
 
@@ -123,6 +124,15 @@ public static class Handler
         if (plan == null)
             return BadRequestString("Failed to duplicate plan");
         return OkObject(JsonSerializer.Serialize(plan, DefaultOptions));
+    }
+
+    private static HttpResponse GetUserByIdHandler(HttpRequest request)
+    {
+        var planner = new Planner(request.Headers["authorization"]);
+        var user = planner.GetGraphUser(request.ParsedParameters().Get("userIdOrEmail"));
+        if (user == null)
+            return BadRequestString($"Failed to identify user by id or email {request.ParsedParameters().Get("userIdOrEmail")}");
+        return OkObject(JsonSerializer.Serialize(user, DefaultOptions));
     }
 
     private static HttpResponse WarmupHandler(HttpRequest request)
