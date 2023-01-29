@@ -4,7 +4,12 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>planner_exandimport_wasm.frontend</RootNamespace>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\shared\shared.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AntDesign" Version="0.13.2" />

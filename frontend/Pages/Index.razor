@@ -1,9 +1,366 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
+@using planner_exandimport_wasm.frontend.Data
+@using shared.JSON
+@using System.Text.Json
+@inject BackendService GroupService
+@inject IMessageService _message
 
-<h1>Hello, world!</h1>
+<PageTitle>Plan Duplication</PageTitle>
 
-Welcome to your new app.
+<div>
+    <Layout>
+        <Sider Class="site-layout-background">
+            <Steps Current="current" Direction="vertical">
+                <Step Title="Select source plan" Description="Select a group and plan as source for duplication" />
+                <Step Title="Select target plan" Description="Select a group and plan as target for duplication" />
+                <Step Title="Make adjustments" Description="Make adjustments (optional)" />
+            </Steps>
+        </Sider>
+        <Content Class="site-layout-background">
+            <div class="steps-content">
+                <!-- header -->
+                @if (current > 0)
+                {
+                    <div>
+                        <p>Your selected <b>source</b> plan is <b>@selectedPlans[0].Title</b> from group
+                            <b>@selectedGroups[0].DisplayName</b>
+                        </p>
+                    </div>
+                }
+                @if (current == 2)
+                {
+                    <div>
+                        <p>Your selected <b>target</b> plan is <b>@selectedPlans[1].Title</b> from group
+                            <b>@selectedGroups[1].DisplayName</b>
+                        </p>
+                    </div>
+                }
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+                <!-- body -->
+                @if (current < 2)
+                {
+                    <Search Placeholder="Group search" EnterButton="true" @bind-Value="@groupSearch[current]"
+                    OnSearch="OnSearch" WrapperStyle="width: 300px;" />
+                    <p>&nbsp;</p>
+
+                    @if (groups[current] == null)
+                    {
+                        <p><em>Please search for groups...</em></p>
+                    }
+                    else
+                    {
+                        <Table DataSource="@groups[current]" TItem="Group" OnExpand="OnRowExpand">
+                            <RowTemplate>
+                                <PropertyColumn Property="g=>g!.DisplayName" />
+                                <PropertyColumn Property="g=>g!.Description" />
+                            </RowTemplate>
+                            <ExpandTemplate Context="rowdata">
+                                <Table @ref="planTables[rowdata.Data.Id + current]" DataSource="rowdata.Data.Plans!"
+                            Loading="rowdata.Data.Plans==null" TItem="Plan">
+                                    <RowTemplate>
+                                        <PropertyColumn Property="p=>p!.Title" />
+                                        <PropertyColumn Property="p=>p!.CreatedByGraphUser!.DisplayName" Title="Created by" />
+                                        <ActionColumn Title="Select">
+                                            <Button OnClick="p => OnSelect(rowdata.Data, context)">Select</Button>
+                                        </ActionColumn>
+                                    </RowTemplate>
+                                </Table>
+                            </ExpandTemplate>
+                        </Table>
+                    }
+                }
+                else if (current == 2)
+                {
+                    <p>You can make adjustments to the target plan here:
+                    <ul>
+                        <li>Date adjustments: All tasks with a start and/or due date will be adjusted. The idea is to set up
+                            your source plan to work for a specific reference date and adjust the dates in the target plan
+                            to work for a different reference date. E.g. if you use this for onboarding, you could create a
+                            source plan that works for someone starting on January 1 2023. If you then have someone starting
+                            on April 1 2023, you would enter January 1 2023 as source reference date, April 1 2023 as target
+                            reference date and the tool would automatically move all dates in tasks.<br />Additionally, you
+                            can also define a date that will be replaced with today's date for tasks that should start
+                            immediately.</li>
+                    </ul>
+                    <ul>
+                        <li>Assignment adjustments: If you assign your tasks in your source plan, you can change that in the
+                            target plan. E.g. if tasks are assigned to user A and you select that user as source user that
+                            is replaced by user B in the target, then all tasks assigned to user A will be automatically
+                            assigned by the tool to user B in the target plan.</li>
+                    </ul>
+                    </p>
+                    <p>
+                        <Checkbox @bind-Checked="refDateChecked" OnChange="InvertRefDateChecked">
+                            Adjust start / due date according to reference date difference
+                        </Checkbox><br />
+                        <RangePicker TValue="DateTime?[]" @bind-Value="refDates" OnChange="OnRangeChange"
+                        @bind-Disabled="invertedRefDateChecked" />
+                    </p>
+                    <p>
+                        <Checkbox @bind-Checked="todayDateChecked" OnChange="InvertTodayDateChecked">
+                            Adjust start / due date to today's date for this date
+                        </Checkbox><br />
+                        <DatePicker TValue="DateTime?" @bind-Value="todayDate" @bind-Disabled="invertedTodayDateChecked" />
+                    </p>
+                    <p>
+                        <Checkbox @bind-Checked="replaceUsersChecked" OnChange="InvertReplaceUsersChecked">
+                            Replace users
+                        </Checkbox><br />
+
+                        <Button OnClick="addRow" Type="primary" Style="margin-bottom:16px"
+                            disabled=@invertedReplaceUsersChecked>
+                            Add mapping
+                        </Button>
+                    <Table DataSource="listOfData" RowClassName="@(_=>"editable-row")" Bordered>
+                    <PropertyColumn Width="30%" Property="c=>c.sourceEmail">
+                            @if (editIds[0] == context.Id)
+                                {
+                                <Input Type="text" @bind-Value="context.sourceEmail" @onblur="@((args)=>stopEdit(0))" AutoFocus
+                                                    disabled=@invertedReplaceUsersChecked />
+                                }
+                                else
+                                {
+                                <div class="editable-cell-value-wrap" style="padding-right:24px"
+                            @onclick="()=>startEdit(context.Id, 0)">
+                                        @context.sourceEmail
+                                </div>
+                                }
+                        </PropertyColumn>
+                        <PropertyColumn Property="c=>c.sourceId"></PropertyColumn>
+
+                        <PropertyColumn Width="30%" Property="c=>c.targetEmail">
+                                @if (editIds[1] == context.Id)
+                                {
+                                <Input Type="text" @bind-Value="context.targetEmail" @onblur="@((args)=>stopEdit(1))" AutoFocus
+                                                    disabled=@invertedReplaceUsersChecked />
+                                }
+                                else
+                                {
+                                <div class="editable-cell-value-wrap" style="padding-right:24px"
+                            @onclick="()=>startEdit(context.Id, 1)">
+                                        @context.targetEmail
+                                </div>
+                                }
+                        </PropertyColumn>
+                        <PropertyColumn Property="c=>c.targetId"></PropertyColumn>
+                            @if (replaceUsersChecked)
+                            {
+                            <ActionColumn Title="Action">
+                                <Popconfirm Title="Do you really want to delete this mapping?"
+                            OnConfirm="()=> deleteRow(context.Id)" OkText="Yes" CancelText="No">
+                                    <a>Delete</a>
+                                </Popconfirm>
+                            </ActionColumn>
+                            }
+                    </Table>
+                    </p>
+                }
+            </div>
+            <div class="steps-action">
+                @if (current > 0)
+                {
+                    <Button Type="primary" OnClick="OnPreClick">Previous</Button>
+                }
+                @if (current == 2)
+                {
+                    <Button Type="primary" OnClick=@(() => message.Success("Processing complete!"))>
+                        Duplicate
+                    </Button>
+                }
+
+            </div>
+        </Content>
+    </Layout>
+</div>
+
+<style>
+    .site-layout-background {
+        background: #fff;
+    }
+
+    .steps-content {
+        margin: 0 16px;
+    }
+
+    .steps-action {
+        margin: 0 16px;
+    }
+
+    .editable-cell {
+        position: relative;
+    }
+
+    .editable-cell-value-wrap {
+        padding: 5px 12px;
+        cursor: pointer;
+    }
+
+    .editable-row:hover .editable-cell-value-wrap {
+        padding: 4px 11px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+    }
+
+    [data-theme='dark'] .editable-row:hover .editable-cell-value-wrap {
+        border: 1px solid #434343;
+    }
+</style>
+
+@using AntDesign.TableModels
+@inject IMessageService message
+
+@code {
+    public int current { get; set; } = 0;
+    private string[] groupSearch = { "", "" };
+    private Dictionary<int, Group[]?> groups = new Dictionary<int, Group[]?>() { { 0, null }, { 1, null } };
+    private Group[] selectedGroups = new Group[2];
+    private Plan[] selectedPlans = new Plan[2];
+    private Dictionary<string, Table<Plan>> planTables = new Dictionary<string, Table<Plan>>();
+    private bool refDateChecked = false;
+    private bool invertedRefDateChecked = true;
+    private DateTime?[] refDates = new DateTime?[2];
+    private bool todayDateChecked = false;
+    private bool invertedTodayDateChecked = true;
+    private DateTime? todayDate = null;
+    private bool replaceUsersChecked = false;
+    private bool invertedReplaceUsersChecked = true;
+
+
+    public async Task OnSearch()
+    {
+        if (string.IsNullOrEmpty(groupSearch[current]) || groupSearch[current].Length < 3)
+        {
+            return;
+        }
+        groups[current] = await GroupService.GetGroups(groupSearch[current]);
+    }
+
+    public void OnSelect(Group group, Plan plan)
+    {
+        if (group == null || group.Id == null || plan == null || plan.Id == null)
+        {
+            return;
+        }
+
+        selectedGroups[current] = group;
+        selectedPlans[current] = plan;
+        if (current == 0 && string.IsNullOrEmpty(groupSearch[1]))
+        {
+            groupSearch[1] = groupSearch[0];
+        }
+        current++;
+        StateHasChanged();
+    }
+
+    protected async Task OnRowExpand(RowData<Group> rowData)
+    {
+        var group = rowData.Data;
+        if (group.Plans != null)
+        {
+            return;
+        }
+
+        group.Plans = await GroupService.GetPlans(group.Id);
+
+        StateHasChanged();
+    }
+
+    private void OnRangeChange(DateRangeChangedEventArgs args)
+    {
+        Console.WriteLine($"Selected Time: {JsonSerializer.Serialize(args.Dates)}");
+        Console.WriteLine($"Formatted Selected Time: {JsonSerializer.Serialize(args.DateStrings)}");
+    }
+
+    private void InvertRefDateChecked(bool value)
+    {
+        invertedRefDateChecked = !refDateChecked;
+    }
+
+    private void InvertTodayDateChecked(bool value)
+    {
+        invertedTodayDateChecked = !todayDateChecked;
+    }
+
+    private void InvertReplaceUsersChecked(bool value)
+    {
+        invertedReplaceUsersChecked = !replaceUsersChecked;
+    }
+
+    void OnPreClick()
+    {
+        current--;
+        StateHasChanged();
+    }
+
+    record MappingData(string Id)
+    {
+        public string sourceId { get; set; } = "";
+        public string sourceEmail { get; set; } = "";
+        public string targetId { get; set; } = "";
+        public string targetEmail { get; set; } = "";
+    };
+
+    int i = 0;
+    string?[] editIds = new string?[2];
+    MappingData[] listOfData = { };
+
+    void addRow()
+    {
+        listOfData = listOfData.Append(new($"{i}") { sourceId = "", sourceEmail = "", targetId = "", targetEmail = "" });
+        i++;
+    }
+
+    void deleteRow(string id)
+    {
+        listOfData = listOfData.Where(d => d.Id != id).ToArray();
+    }
+
+    void startEdit(string id, int which)
+    {
+        editIds[which] = id;
+    }
+
+    async Task stopEdit(int which)
+    {
+        var editedData = listOfData.FirstOrDefault(x => x.Id == editIds[which]);
+        if (editedData == null)
+        {
+            return;
+        }
+        switch (which)
+        {
+            case 0:
+                editedData.sourceId = await UserHandling(editedData.sourceEmail);
+                break;
+            case 1:
+                editedData.targetId = await UserHandling(editedData.targetEmail);
+                break;
+        }
+        editIds[which] = null;
+    }
+
+    private async Task<string> UserHandling(string? email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return "";
+        }
+        try
+        {
+            var user = await GroupService.GetUser(email);
+            if (user == null || string.IsNullOrEmpty(user.Id))
+            {
+                await _message.Warning($"Couldn't find user {email}");
+                return "";
+            }
+            await _message.Success($"Identified user {email}");
+            return user.Id;
+        }
+        catch (Exception)
+        {
+            await _message.Error($"Couldn't find user {email}");
+            return "";
+        }
+    }
+}

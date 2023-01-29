@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using frontend.Data;
+using planner_exandimport_wasm.shared.JSON;
 using AntDesign;
+using planner_exandimport_wasm.frontend.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddAntDesign();
-builder.Services.AddSingleton<WeatherForecastService>();
+builder.Services.AddSingleton<BackendService>();
 
 var app = builder.Build();
 

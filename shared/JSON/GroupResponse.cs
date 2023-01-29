@@ -88,5 +88,8 @@ namespace planner_exandimport_wasm.shared.JSON
 
         [JsonPropertyName("onPremisesProvisioningErrors")]
         public object[]? OnPremisesProvisioningErrors { get; set; }
+
+        [JsonPropertyName("plans")]
+        public Plan[]? Plans { get; set; }
     }
 }
