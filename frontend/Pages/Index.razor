@@ -163,11 +163,11 @@
             <div class="steps-action">
                 @if (current > 0)
                 {
-                    <Button Type="primary" OnClick="OnPreClick">Previous</Button>
+                    <Button Type="primary" OnClick="OnPreClick" disabled=@disableButtons>Previous</Button>
                 }
                 @if (current == 2)
                 {
-                    <Button Type="primary" OnClick="OnDuplicateClick">
+                    <Button Type="primary" OnClick="OnDuplicateClick" disabled=@disableButtons>
                         Duplicate
                     </Button>
                 }
@@ -228,6 +228,7 @@
     private DateTime? todayDate = null;
     private bool replaceUsersChecked = false;
     private bool invertedReplaceUsersChecked = true;
+    private bool disableButtons = false;
 
 
     public async Task OnSearch()
@@ -305,16 +306,20 @@
 
     async Task OnDuplicateClick()
     {
-        var assignmentReplacements = new AssignmentReplacement[listOfData.Count()];
-        for (var index = 0; index < listOfData.Count(); index++)
+        var assignmentReplacements = new AssignmentReplacement[0];
+        if (replaceUsersChecked)
         {
-            var data = listOfData[index];
-            assignmentReplacements[index] = new AssignmentReplacement()
-                {
-                    OriginalAssignment = data.sourceId,
-                    ReplacementAssignment = data.targetId
-                };
-            i++;
+            assignmentReplacements = new AssignmentReplacement[listOfData.Count()];
+            for (var index = 0; index < listOfData.Count(); index++)
+            {
+                var data = listOfData[index];
+                assignmentReplacements[index] = new AssignmentReplacement()
+                    {
+                        OriginalAssignment = data.sourceId,
+                        ReplacementAssignment = data.targetId
+                    };
+                i++;
+            }
         }
         var duplicationAdjustments = new DuplicationAdjustments()
             {
@@ -329,6 +334,7 @@
 
         try
         {
+            disableButtons = true;
             await message.Info("Starting to duplicate plan...");
             var newPlan = await GroupService.DuplicatePlan(selectedGroups[0].Id, selectedPlans[0].Id, selectedGroups[1].Id,
             selectedPlans[1].Id,
@@ -347,6 +353,7 @@
             await message.Error("Plan duplication failed");
             Console.WriteLine(ex);
         }
+        disableButtons = false;
     }
 
     record MappingData(string Id)
