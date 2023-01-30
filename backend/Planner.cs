@@ -83,13 +83,13 @@ namespace planner_exandimport_wasm
                 {
                     var difference = duplicationAdjustments.DateAdjustment.AdjustedReferenceDate - duplicationAdjustments.DateAdjustment.OriginalReferenceDate;
 
-                    if (task.StartDateTime != null && task.StartDateTime.Value != null)
-                        if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value != null && task.StartDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value.Date)
+                    if (task.StartDateTime != null)
+                        if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && task.StartDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value.Date)
                             task.StartDateTime = DateTimeOffset.Now;
                         else
                             task.StartDateTime = task.StartDateTime + difference;
-                    if (task.DueDateTime != null && task.DueDateTime.Value != null)
-                        if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value != null && task.DueDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value.Date)
+                    if (task.DueDateTime != null)
+                        if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && task.DueDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value.Date)
                             task.DueDateTime = DateTimeOffset.Now;
                         else
                             task.DueDateTime = task.DueDateTime + difference;
