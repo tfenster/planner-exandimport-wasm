@@ -1,6 +1,9 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using planner_exandimport_wasm.shared.JSON;
+using Microsoft.Identity.Web;
 
 namespace planner_exandimport_wasm.frontend.Data;
 
@@ -19,7 +22,7 @@ public class BackendService
             return Array.Empty<Group>();
 
         using HttpClient client = new();
-        SetupClient(client);
+        await SetupClient(client);
 
         await using Stream stream = await client.GetStreamAsync($"/groups?groupSearch={searchString}");
         var groups = await JsonSerializer.DeserializeAsync<Group[]>(stream);
@@ -32,7 +35,7 @@ public class BackendService
             return Array.Empty<Plan>();
 
         using HttpClient client = new();
-        SetupClient(client);
+        await SetupClient(client);
 
         await using Stream stream = await client.GetStreamAsync($"/plans?groupId={groupId}");
         var plans = await JsonSerializer.DeserializeAsync<Plan[]>(stream);
@@ -45,14 +48,14 @@ public class BackendService
             return null;
 
         using HttpClient client = new();
-        SetupClient(client);
+        await SetupClient(client);
 
         await using Stream stream = await client.GetStreamAsync($"/user?userIdOrEmail={email}");
         var user = await JsonSerializer.DeserializeAsync<GraphUser>(stream);
         return user;
     }
 
-    private void SetupClient(HttpClient client)
+    private async Task SetupClient(HttpClient client)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration.GetValue<string>("GraphToken"));
         client.BaseAddress = new Uri(_configuration.GetValue<string>("BackendBaseUrl")!);
