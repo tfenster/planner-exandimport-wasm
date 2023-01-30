@@ -18,7 +18,7 @@ namespace planner_exandimport_wasm.shared.JSON
         public Plan[]? Plans { get; set; }
     }
 
-    public partial class Plan
+    public partial class Plan : IComparable<Plan>
     {
         [JsonPropertyName("@odata.etag")]
         public string? OdataEtag { get; set; }
@@ -28,9 +28,6 @@ namespace planner_exandimport_wasm.shared.JSON
 
         [JsonPropertyName("owner")]
         public string? Owner { get; set; }
-
-        [JsonPropertyName("ownedByGraphUser")]
-        public GraphUser? OwnedByGraphUser { get; set; }
 
         [JsonPropertyName("title")]
         public string? Title { get; set; }
@@ -46,14 +43,24 @@ namespace planner_exandimport_wasm.shared.JSON
 
         public Bucket[]? Buckets { get; set; }
 
-        public void Sanitize(IPlanner planner)
+        public void Sanitize()
         {
             if (Buckets != null)
                 foreach (var bucket in Buckets)
                     bucket.Sanitize();
+        }
+
+        public void ExpandUsers(IPlanner planner)
+        {
             if (CreatedBy?.User != null)
                 CreatedByGraphUser = planner.GetGraphUser(CreatedBy.User.Id);
-            OwnedByGraphUser = planner.GetGraphUser(Owner);
+        }
+
+        public int CompareTo(Plan? other)
+        {
+            if (this.Title == null || other == null || other.Title == null)
+                return 0;
+            return this.Title.CompareTo(other.Title);
         }
     }
 

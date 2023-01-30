@@ -12,7 +12,7 @@ namespace planner_exandimport_wasm.shared.JSON
         public Group[]? Groups { get; set; }
     }
 
-    public partial class Group
+    public partial class Group : IComparable<Group>
     {
         [JsonPropertyName("id")]
         public string? Id { get; set; }
@@ -91,5 +91,12 @@ namespace planner_exandimport_wasm.shared.JSON
 
         [JsonPropertyName("plans")]
         public Plan[]? Plans { get; set; }
+
+        public int CompareTo(Group? other)
+        {
+            if (this.DisplayName == null || other == null || other.DisplayName == null)
+                return 0;
+            return this.DisplayName.CompareTo(other.DisplayName);
+        }
     }
 }

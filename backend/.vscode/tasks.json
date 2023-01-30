@@ -18,6 +18,12 @@
             "type": "shell",
             "command": "spin up --follow-all",
             "problemMatcher": []
+        },
+        {
+            "label": "build and run",
+            "type": "shell",
+            "command": "spin build --up --follow-all",
+            "problemMatcher": []
         }
     ]
 }

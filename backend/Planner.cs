@@ -16,10 +16,6 @@ namespace planner_exandimport_wasm
         private const string PLANNER_SUB = "/v1.0/planner/";
         private const string GROUPS_SUB = "/v1.0/groups/";
         private const string USERS_SUB = "/v1.0/users/";
-        private const string RESOURCE_ID = GRAPH_ENDPOINT;
-        public static string CLIENT_ID = "";
-        public static string TENANT = "";
-        private static Dictionary<string, string> users = new Dictionary<string, string>();
         private static Dictionary<string, GraphUser> graphUsers = new Dictionary<string, GraphUser>();
         private string token = "";
 
@@ -27,81 +23,6 @@ namespace planner_exandimport_wasm
         {
             this.token = token;
         }
-
-        // export a plan and optionally output it as json
-        /*public Plan[]? Export(bool output = true, bool allowMultiSelect = false, bool retrieveTaskDetail = true)
-        {
-            Plan[] plans = SelectPlan(allowMultiSelect);
-            if (!allowMultiSelect && plans.Length > 1)
-            {
-                Console.WriteLine("You can only select 1 plan in this case");
-                return null;
-            }
-
-            var httpClient = PreparePlannerClient();
-            foreach (Plan plan in plans)
-            {
-                // get all buckets, tasks and task details
-                var buckets = GraphResponse<BucketResponse>.Get("plans/" + plan.Id + "/buckets", httpClient)?.Buckets;
-                var tasks = GraphResponse<TaskResponse>.Get("plans/" + plan.Id + "/tasks", httpClient)?.Tasks;
-
-                if (retrieveTaskDetail && tasks != null)
-                    foreach (var task in tasks)
-                        task.TaskDetail = GraphResponse<TaskDetailResponse>.Get("tasks/" + task.Id + "/details", httpClient);
-
-                // put tasks in buckets so that the plan object has all data hierarchically
-                if (buckets != null && tasks != null)
-                    foreach (var bucket in buckets)
-                        bucket.Tasks = tasks.Where(t => t.BucketId == bucket.Id).ToArray();
-
-                plan.Buckets = buckets;
-            }
-
-            if (output)
-            {
-                foreach (Plan plan in plans)
-                    Console.WriteLine(JsonSerializer.Serialize(plan));
-            }
-
-            return plans;
-        }
-
-        internal void DuplicateBucket(Bucket bucket, string newBucketName)
-        {
-            bucket.Name = newBucketName;
-            if (bucket.PlanId != null)
-            {
-                var httpClient = PreparePlannerClient();
-                CreateBucket(bucket.PlanId, bucket, true, httpClient, null);
-            }
-
-        }*/
-
-        // export a plan and import everything into a new plan
-        /*public void Import(bool addAssignments)
-        {
-            Console.WriteLine("Step 1: Select the plan to export");
-            var exportedPlan = Export(false)?.FirstOrDefault();
-            if (exportedPlan == null || exportedPlan.Buckets == null)
-                return;
-
-            Console.WriteLine("Step 2: Select the plan in which you want to import");
-            var targetPlan = SelectPlan(false).FirstOrDefault();
-            if (targetPlan == null)
-                return;
-
-            var httpClient = PreparePlannerClient();
-            // buckets and tasks are always added at the beginning, therefore reversing the order when importing, otherwise e.g. the
-            // last exported bucket would become the first bucket in the imported plan
-            exportedPlan.Buckets = exportedPlan.Buckets.Reverse().ToArray();
-
-            // create buckets and tasks and then set details for the created tasks (can't be done in one step)
-            foreach (Bucket bucket in exportedPlan.Buckets)
-                if (targetPlan.Id != null)
-                    CreateBucket(targetPlan.Id, bucket, addAssignments, httpClient, null);
-
-            Console.WriteLine("Import is done");
-        }*/
 
         private void CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, HttpRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
         {
@@ -161,13 +82,14 @@ namespace planner_exandimport_wasm
                 if (duplicationAdjustments?.DateAdjustment != null)
                 {
                     var difference = duplicationAdjustments.DateAdjustment.AdjustedReferenceDate - duplicationAdjustments.DateAdjustment.OriginalReferenceDate;
-                    if (task.StartDateTime != null)
-                        if (task.StartDateTime == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate)
+
+                    if (task.StartDateTime != null && task.StartDateTime.Value != null)
+                        if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && task.StartDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Date)
                             task.StartDateTime = DateTimeOffset.Now;
                         else
                             task.StartDateTime = task.StartDateTime + difference;
-                    if (task.DueDateTime != null)
-                        if (task.DueDateTime == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate)
+                    if (task.DueDateTime != null && task.DueDateTime.Value != null)
+                        if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && task.DueDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Date)
                             task.DueDateTime = DateTimeOffset.Now;
                         else
                             task.DueDateTime = task.DueDateTime + difference;
@@ -199,67 +121,6 @@ namespace planner_exandimport_wasm
             }
         }
 
-        /*public static void ExportToCSV()
-        {
-            // export the plan
-            Console.WriteLine("Select the plan(s) to export");
-            var exportedPlans = Export(false, true, false);
-
-            // convert the plan to CSV
-            StringWriter csvString = new StringWriter();
-            csvString.WriteLine("Plan;Bucket;Task;Zugewiesen an;Fällig am;Erledigt am;Erledigt von;Erstellt am;Erstellt von");
-            foreach (Plan exportedPlan in exportedPlans)
-            {
-                foreach (var bucket in exportedPlan.Buckets)
-                {
-                    foreach (var task in bucket.Tasks)
-                    {
-                        var completedAt = "";
-                        if (task.CompletedDateTime != null)
-                        {
-                            completedAt = task.CompletedDateTime.ToString();
-                        }
-                        var completedBy = GetUserForEdBy(task.CompletedBy) ?? "--";
-
-                        var dueAt = "";
-                        if (task.DueDateTime != null)
-                        {
-                            dueAt = task.DueDateTime.ToString();
-                        }
-                        var createdBy = GetUserForEdBy(task.CreatedBy) ?? "--";
-
-                        var assignedTo = GetAssigned(task.Assignments);
-
-                        if (task.CompletedDateTime == null) { }
-                        csvString.WriteLine($"{exportedPlan.Title};{bucket.Name};{task.Title};{assignedTo};{dueAt};{completedAt};{completedBy};{task.CreatedDateTime};{createdBy}");
-                    }
-                }
-            }
-
-            var filename = "ExportedPlans.csv";
-            if (exportedPlans.Length == 1) filename = exportedPlans[0].Title + ".csv";
-            File.WriteAllText(filename, csvString.ToString());
-        }*/
-
-        /*private Bucket? SelectBucket()
-        {
-            var exportedPlan = Export(false)?.FirstOrDefault();
-            if (exportedPlan == null || exportedPlan.Buckets == null)
-                return null;
-
-            for (int i = 0; i < exportedPlan.Buckets.Length; i++)
-                Console.WriteLine("(" + i + ") " + exportedPlan.Buckets[i].Name);
-
-            string selectedBucketS = ""; // FIXME Program.GetInput("Which bucket do you want to use: ");
-
-            int selectedBucket = -1;
-            if (int.TryParse(selectedBucketS, out selectedBucket))
-            {
-                return exportedPlan.Buckets[selectedBucket];
-            }
-            throw new Exception("Please select a bucket");
-        }*/
-
         public Group[]? GetGroups(string? groupSearch = null)
         {
             var httpClient = PrepareGroupsClient();
@@ -270,8 +131,10 @@ namespace planner_exandimport_wasm
             var groupsResult = GraphResponse<GroupResponse>.Get(searchString, httpClient);
             if (groupsResult == null || groupsResult.Groups == null)
                 return null;
-            else
-                return groupsResult.Groups;
+
+            Array.Sort(groupsResult.Groups);
+
+            return groupsResult.Groups;
         }
 
         public Plan[]? GetPlans(string? groupId)
@@ -283,6 +146,13 @@ namespace planner_exandimport_wasm
             var plansResult = GraphResponse<PlanResponse>.Get($"{groupId}/planner/plans", httpRequest);
             if (plansResult == null || plansResult.Plans == null)
                 return null;
+
+            foreach (var plan in plansResult.Plans)
+            {
+                plan.ExpandUsers(this);
+            }
+
+            Array.Sort(plansResult.Plans);
 
             return plansResult.Plans;
         }
@@ -331,7 +201,7 @@ namespace planner_exandimport_wasm
             var sourcePlanDetails = GetPlanDetails(sourceGroupId, sourcePlanId);
             if (sourcePlanDetails == null)
                 return null;
-            sourcePlanDetails.Sanitize(this);
+            sourcePlanDetails.Sanitize();
 
             var httpClient = PreparePlannerClient();
             // buckets and tasks are always added at the beginning, therefore reversing the order when importing, otherwise e.g. the
@@ -358,9 +228,22 @@ namespace planner_exandimport_wasm
                 return graphUser;
 
             var httpRequest = PrepareUsersClient();
-            graphUser = GraphResponse<GraphUser>.Get($"{userIdOrEmail}", httpRequest);
-            if (graphUser != null)
-                graphUsers.Add(userIdOrEmail, graphUser);
+            try
+            {
+                graphUser = GraphResponse<GraphUser>.Get($"{userIdOrEmail}", httpRequest);
+            }
+            catch
+            {
+                // ignore
+            }
+            finally
+            {
+                // but don't try again
+                if (graphUser != null)
+                    graphUsers.Add(userIdOrEmail, graphUser);
+                else
+                    graphUsers.Add(userIdOrEmail, new GraphUser());
+            }
 
             return graphUser;
         }
@@ -452,69 +335,5 @@ namespace planner_exandimport_wasm
             };
             return outboundReq;
         }
-
-        /*private string GetAssigned(Dictionary<string, Assignment> assignments)
-        {
-            if (assignments.Values.Count > 0)
-            {
-                var sb = new StringBuilder();
-                var delim = "";
-                List<string> added = new List<string>();
-                foreach (string assignment in assignments.Keys)
-                {
-                    var user = GetUserForId(assignment) ?? "--";
-                    if (!added.Contains(user))
-                    {
-                        sb.Append(delim);
-                        sb.Append(user);
-                        delim = ", ";
-                        added.Add(user);
-                    }
-                }
-                return sb.ToString();
-            }
-            else
-            {
-                return "--";
-            }
-        }*/
-
-        /*private string? GetUserForEdBy(EdBy edBy)
-        {
-            if (edBy == null || edBy.User == null || edBy.User.Id == null)
-                return null;
-            var id = edBy.User.Id;
-            if (users.ContainsKey(id))
-                return users[id];
-            else
-            {
-                var user = GetUserForId(id);
-                return GetUserForId(id);
-            }
-        }*/
-
-        /*private string? GetUserForId(string id)
-        {
-            if (id == null)
-                return null;
-            if (users.ContainsKey(id))
-                return users[id];
-            else
-            {
-                var httpClient = PrepareUsersClient();
-                try
-                {
-                    var user = GraphResponse<GraphUser>.Get(id, httpClient);
-                    if (user == null || user.DisplayName == null)
-                        return null;
-                    users.Add(id, user.DisplayName);
-                    return user.DisplayName;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }*/
     }
 }
