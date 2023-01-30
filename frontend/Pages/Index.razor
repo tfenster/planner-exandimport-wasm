@@ -3,6 +3,9 @@
 @using planner_exandimport_wasm.frontend.Data
 @using shared.JSON
 @using System.Text.Json
+@using System.Linq
+@using Microsoft.Identity.Web
+@inject MicrosoftIdentityConsentAndConditionalAccessHandler ConsentHandler
 @inject BackendService GroupService
 @inject IMessageService _message
 
@@ -164,7 +167,7 @@
                 }
                 @if (current == 2)
                 {
-                    <Button Type="primary" OnClick=@(() => message.Success("Processing complete!"))>
+                    <Button Type="primary" OnClick="OnDuplicateClick">
                         Duplicate
                     </Button>
                 }
@@ -229,11 +232,18 @@
 
     public async Task OnSearch()
     {
-        if (string.IsNullOrEmpty(groupSearch[current]) || groupSearch[current].Length < 3)
+        try
         {
-            return;
+            if (string.IsNullOrEmpty(groupSearch[current]) || groupSearch[current].Length < 3)
+            {
+                return;
+            }
+            groups[current] = await GroupService.GetGroups(groupSearch[current]);
         }
-        groups[current] = await GroupService.GetGroups(groupSearch[current]);
+        catch (Exception ex)
+        {
+            ConsentHandler.HandleException(ex);
+        }
     }
 
     public void OnSelect(Group group, Plan plan)
@@ -291,6 +301,51 @@
     {
         current--;
         StateHasChanged();
+    }
+
+    async Task OnDuplicateClick()
+    {
+        var assignmentReplacements = new AssignmentReplacement[listOfData.Count()];
+        for (var index = 0; index < listOfData.Count(); index++)
+        {
+            var data = listOfData[index];
+            assignmentReplacements[index] = new AssignmentReplacement()
+                {
+                    OriginalAssignment = data.sourceId,
+                    ReplacementAssignment = data.targetId
+                };
+            i++;
+        }
+        var duplicationAdjustments = new DuplicationAdjustments()
+            {
+                DateAdjustment = new DateAdjustment()
+                {
+                    OriginalReferenceDate = refDateChecked ? refDates[0] : null,
+                    AdjustedReferenceDate = refDateChecked ? refDates[1] : null,
+                    ReplaceWithTodayDate = todayDateChecked ? todayDate : null
+                },
+                AssignmentReplacements = assignmentReplacements
+            };
+
+        try
+        {
+            var newPlan = await GroupService.DuplicatePlan(selectedGroups[0].Id, selectedPlans[0].Id, selectedGroups[1].Id,
+            selectedPlans[1].Id,
+            duplicationAdjustments);
+            if (newPlan != null)
+            {
+                await message.Success("Plan duplicated successfully");
+            }
+            else
+            {
+                await message.Error("Plan duplication failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            await message.Error("Plan duplication failed");
+            Console.WriteLine(ex);
+        }
     }
 
     record MappingData(string Id)
