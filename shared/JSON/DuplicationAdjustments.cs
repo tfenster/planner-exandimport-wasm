@@ -25,12 +25,12 @@ namespace planner_exandimport_wasm.shared.JSON
     public partial class DateAdjustment
     {
         [JsonPropertyName("originalReferenceDate")]
-        public DateTimeOffset OriginalReferenceDate { get; set; }
+        public DateTimeOffset? OriginalReferenceDate { get; set; }
 
         [JsonPropertyName("adjustedReferenceDate")]
-        public DateTimeOffset AdjustedReferenceDate { get; set; }
+        public DateTimeOffset? AdjustedReferenceDate { get; set; }
 
         [JsonPropertyName("replaceWithTodayDate")]
-        public DateTimeOffset ReplaceWithTodayDate { get; set; }
+        public DateTimeOffset? ReplaceWithTodayDate { get; set; }
     }
 }
