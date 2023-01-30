@@ -81,7 +81,11 @@ namespace planner_exandimport_wasm
                 // change dates if requested
                 if (duplicationAdjustments?.DateAdjustment != null)
                 {
-                    var difference = duplicationAdjustments.DateAdjustment.AdjustedReferenceDate - duplicationAdjustments.DateAdjustment.OriginalReferenceDate;
+                    var difference = DateTimeOffset.Now - DateTimeOffset.Now;
+                    if (duplicationAdjustments.DateAdjustment.AdjustedReferenceDate != null && duplicationAdjustments.DateAdjustment.OriginalReferenceDate != null)
+                    {
+                        difference = duplicationAdjustments.DateAdjustment.AdjustedReferenceDate.Value - duplicationAdjustments.DateAdjustment.OriginalReferenceDate.Value;
+                    }
 
                     if (task.StartDateTime != null)
                         if (duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate != null && task.StartDateTime.Value.Date == duplicationAdjustments.DateAdjustment.ReplaceWithTodayDate.Value.Date)
