@@ -329,6 +329,7 @@
 
         try
         {
+            await message.Info("Starting to duplicate plan...");
             var newPlan = await GroupService.DuplicatePlan(selectedGroups[0].Id, selectedPlans[0].Id, selectedGroups[1].Id,
             selectedPlans[1].Id,
             duplicationAdjustments);
