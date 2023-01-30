@@ -1,6 +1,6 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Web
-@namespace frontend.Pages
+@namespace planner_exandimport_wasm.frontend.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 <!DOCTYPE html>
@@ -20,7 +20,7 @@
 </head>
 
 <body>
-    <component type="typeof(App)" render-mode="ServerPrerendered" />
+    <component type="typeof(frontend.App)" render-mode="ServerPrerendered" />
 
     <div id="blazor-error-ui">
         <environment include="Staging,Production">

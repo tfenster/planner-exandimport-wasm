@@ -5,6 +5,10 @@
 			"name": "Frontend"
 		},
 		{
+			"path": "../../shared",
+			"name": "Shared"
+		},
+		{
 			"path": "..",
 			"name": "Configuration"
 		}
