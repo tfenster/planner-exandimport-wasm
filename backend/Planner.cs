@@ -1,4 +1,5 @@
 using System.Text;
+using System.Linq;
 using System.Text.Json;
 using Fermyon.Spin.Sdk;
 using planner_exandimport_wasm.shared.JSON;
@@ -24,11 +25,22 @@ namespace planner_exandimport_wasm
             this.token = token;
         }
 
-        private void CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, HttpRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
+        public Task<string?> DuplicateBucket(string? targetPlanId, BucketWithDuplicationAdjustments bucketWithDuplicationAdjustments)
+        {
+            if (bucketWithDuplicationAdjustments.Bucket == null || string.IsNullOrEmpty(targetPlanId))
+                return Task.FromResult<string?>(null);
+
+            Handler._logger.LogInformation($"Duplicate bucket {bucketWithDuplicationAdjustments.Bucket.Name} to plan {targetPlanId}");
+
+            var httpClient = PreparePlannerClient();
+            return Task.FromResult<string?>(CreateBucket(targetPlanId, bucketWithDuplicationAdjustments.Bucket, true, httpClient, bucketWithDuplicationAdjustments.DuplicationAdjustments));
+        }
+
+        private string? CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, HttpRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
         {
             Handler._logger.LogInformation($"Create bucket {bucket.Name}");
             if (bucket.Tasks == null)
-                return;
+                return null;
             bucket.PlanId = targetPlanId;
 
             // reset all order hints as the exported values don't work
@@ -38,7 +50,7 @@ namespace planner_exandimport_wasm
             bucketCopy!.Tasks = null;
             var newBucket = GraphResponse<Bucket>.Post("buckets", httpClient, bucketCopy);
             if (newBucket == null)
-                return;
+                return null;
 
             // if we are too quick the created bucket is not available yet, make sure it is there
             Thread.Sleep(5 * 1000);
@@ -126,9 +138,11 @@ namespace planner_exandimport_wasm
                     var updatedTaskDetailsResponse = GraphResponse<TaskDetailResponse>.Patch("tasks/" + task.Id + "/details", httpClient, task.TaskDetail, newTaskDetailsResponse.OdataEtag!);
                 }
             }
+
+            return newBucket.Id;
         }
 
-        public Group[]? GetGroups(string? groupSearch = null)
+        public Task<Group[]?> GetGroups(string? groupSearch = null)
         {
             var httpClient = PrepareGroupsClient();
 
@@ -137,14 +151,14 @@ namespace planner_exandimport_wasm
                 searchString += $" and startswith(displayName, '{groupSearch}')";
             var groupsResult = GraphResponse<GroupResponse>.Get(searchString, httpClient);
             if (groupsResult == null || groupsResult.Groups == null)
-                return null;
+                return Task.FromResult<Group[]?>(null);
 
             Array.Sort(groupsResult.Groups);
 
-            return groupsResult.Groups;
+            return Task.FromResult<Group[]?>(groupsResult.Groups);
         }
 
-        public Plan[]? GetPlans(string? groupId)
+        public async Task<Plan[]?> GetPlans(string? groupId)
         {
             if (string.IsNullOrEmpty(groupId))
                 return null;
@@ -156,7 +170,7 @@ namespace planner_exandimport_wasm
 
             foreach (var plan in plansResult.Plans)
             {
-                plan.ExpandUsers(this);
+                await plan.ExpandUsers(this);
             }
 
             Array.Sort(plansResult.Plans);
@@ -164,16 +178,16 @@ namespace planner_exandimport_wasm
             return plansResult.Plans;
         }
 
-        public Plan? GetPlanDetails(string? groupId, string? planId)
+        public Task<Plan?> GetPlanDetails(string? groupId, string? planId)
         {
             if (string.IsNullOrEmpty(groupId) || string.IsNullOrEmpty(planId))
-                return null;
+                return Task.FromResult<Plan?>(null);
 
             var httpRequestPlan = PrepareGroupsClient();
             var plan = GraphResponse<Plan>.Get($"{groupId}/planner/plans/{planId}", httpRequestPlan);
             Handler._logger.LogDebug($"plan: {JsonSerializer.Serialize(plan)}");
             if (plan == null)
-                return null;
+                return Task.FromResult<Plan?>(null);
 
             var httpRequestPlanner = PreparePlannerClient();
             // get all buckets, tasks and task details
@@ -197,16 +211,16 @@ namespace planner_exandimport_wasm
 
             plan.Buckets = buckets;
 
-            return plan;
+            return Task.FromResult<Plan?>(plan);
         }
 
-        public Plan? DuplicatePlan(string? sourceGroupId, string? sourcePlanId, string? targetGroupId, string? targetPlanId, DuplicationAdjustments? duplicationAdjustments)
+        public async Task<Plan?> DuplicatePlan(string? sourceGroupId, string? sourcePlanId, string? targetGroupId, string? targetPlanId, DuplicationAdjustments? duplicationAdjustments)
         {
             if (string.IsNullOrEmpty(sourceGroupId) || string.IsNullOrEmpty(sourcePlanId) || string.IsNullOrEmpty(targetGroupId) || string.IsNullOrEmpty(targetPlanId))
                 return null;
 
             Handler._logger.LogInformation("Get source plan details");
-            var sourcePlanDetails = GetPlanDetails(sourceGroupId, sourcePlanId);
+            var sourcePlanDetails = await GetPlanDetails(sourceGroupId, sourcePlanId);
             if (sourcePlanDetails == null)
                 return null;
             sourcePlanDetails.Sanitize();
@@ -223,17 +237,17 @@ namespace planner_exandimport_wasm
                     CreateBucket(targetPlanId, bucket, true, httpClient, duplicationAdjustments);
             }
 
-            return GetPlanDetails(targetGroupId, targetPlanId);
+            return await GetPlanDetails(targetGroupId, targetPlanId);
         }
 
-        public GraphUser? GetGraphUser(string? userIdOrEmail)
+        public Task<GraphUser?> GetGraphUser(string? userIdOrEmail)
         {
             if (string.IsNullOrEmpty(userIdOrEmail))
-                return null;
+                return Task.FromResult<GraphUser?>(null);
 
             GraphUser? graphUser = null;
             if (graphUsers.TryGetValue(userIdOrEmail, out graphUser))
-                return graphUser;
+                return Task.FromResult<GraphUser?>(graphUser);
 
             var httpRequest = PrepareUsersClient();
             try
@@ -253,7 +267,7 @@ namespace planner_exandimport_wasm
                     graphUsers.Add(userIdOrEmail, new GraphUser());
             }
 
-            return graphUser;
+            return Task.FromResult<GraphUser?>(graphUser);
         }
 
         // allows the user to search for a group, select the right one and then select the right plan
