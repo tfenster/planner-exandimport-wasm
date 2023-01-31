@@ -50,10 +50,10 @@ namespace planner_exandimport_wasm.shared.JSON
                     bucket.Sanitize();
         }
 
-        public void ExpandUsers(IPlanner planner)
+        public async Task ExpandUsers(IPlanner planner)
         {
             if (CreatedBy?.User != null)
-                CreatedByGraphUser = planner.GetGraphUser(CreatedBy.User.Id);
+                CreatedByGraphUser = await planner.GetGraphUser(CreatedBy.User.Id);
         }
 
         public int CompareTo(Plan? other)
