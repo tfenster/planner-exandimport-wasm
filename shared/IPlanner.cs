@@ -8,5 +8,6 @@ public interface IPlanner
     Plan[]? GetPlans(string? groupId);
     Plan? GetPlanDetails(string? groupId, string? planId);
     Plan? DuplicatePlan(string? sourceGroupId, string? sourcePlanId, string? targetGroupId, string? targetPlanId, DuplicationAdjustments? duplicationAdjustments);
+    string? DuplicateBucket(string? targetPlanId, string? sourceGroupId, string? sourcePlanId, string? sourceBucketId, DuplicationAdjustments? duplicationAdjustments);
     GraphUser? GetGraphUser(string? userIdOrEmail);
 }
