@@ -14,7 +14,7 @@ public static class Handler
     public static ILogger _logger;
 
     // https://github.com/christophwille/SpinHello/blob/abef0de9810abe2894f1906e5dd740e672f19b34/src/Handler/Handler.cs#L98
-    private delegate HttpResponse RequestHandlerDelegate(HttpRequest request);
+    private delegate Task<HttpResponse> RequestHandlerDelegate(HttpRequest request);
     private static Dictionary<string, RequestHandlerDelegate> _routes = new Dictionary<string, RequestHandlerDelegate>()
     {
         { Warmup.DefaultWarmupUrl, WarmupHandler },
@@ -22,6 +22,7 @@ public static class Handler
         { "/plans", PlansHandler },
         { "/planDetails", PlanDetailsHandler },
         { "/duplicatePlan", DuplicatePlanHandler },
+        { "/duplicateBucket", DuplicateBucketHandler },
         { "/user", GetUserByIdHandler },
         { "/echo", EchoHandler }
     };
@@ -46,7 +47,7 @@ public static class Handler
 
         try
         {
-            if (routeFound && null != handler) return handler(request);
+            if (routeFound && null != handler) return handler(request).Result;
         }
         catch (Exception ex)
         {
@@ -66,7 +67,8 @@ public static class Handler
         };
     }
 
-    private static HttpResponse EchoHandler(HttpRequest request)
+#pragma warning disable 1998
+    private async static Task<HttpResponse> EchoHandler(HttpRequest request)
     {
         var headers = request.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         if (headers.ContainsKey("content-type"))
@@ -85,42 +87,43 @@ public static class Handler
 
         return OkObject(request.Body.AsString());
     }
+#pragma warning restore 1998
 
-    private static HttpResponse GroupsHandler(HttpRequest request)
+    private async static Task<HttpResponse> GroupsHandler(HttpRequest request)
     {
         var planner = new Planner(request.Headers["authorization"]);
-        var groups = planner.GetGroups(request.ParsedParameters().Get("groupSearch"));
+        var groups = await planner.GetGroups(request.ParsedParameters().Get("groupSearch"));
         if (groups == null)
             return NotFound();
         return OkObject(JsonSerializer.Serialize(groups));
     }
 
-    private static HttpResponse PlansHandler(HttpRequest request)
+    private async static Task<HttpResponse> PlansHandler(HttpRequest request)
     {
         var planner = new Planner(request.Headers["authorization"]);
-        var plans = planner.GetPlans(request.ParsedParameters().Get("groupId"));
+        var plans = await planner.GetPlans(request.ParsedParameters().Get("groupId"));
         if (plans == null)
             return NotFound();
         return OkObject(JsonSerializer.Serialize(plans));
     }
 
-    private static HttpResponse PlanDetailsHandler(HttpRequest request)
+    private async static Task<HttpResponse> PlanDetailsHandler(HttpRequest request)
     {
         var planner = new Planner(request.Headers["authorization"]);
-        var plan = planner.GetPlanDetails(request.ParsedParameters().Get("groupId"), request.ParsedParameters().Get("planId"));
+        var plan = await planner.GetPlanDetails(request.ParsedParameters().Get("groupId"), request.ParsedParameters().Get("planId"));
         if (plan == null)
             return NotFound();
         return OkObject(JsonSerializer.Serialize(plan, DefaultOptions));
     }
 
-    private static HttpResponse DuplicatePlanHandler(HttpRequest request)
+    private async static Task<HttpResponse> DuplicatePlanHandler(HttpRequest request)
     {
         var planner = new Planner(request.Headers["authorization"]);
         DuplicationAdjustments? duplicationAdjustments = null;
         var body = request.Body.AsString();
         if (!string.IsNullOrEmpty(body))
             duplicationAdjustments = JsonSerializer.Deserialize<DuplicationAdjustments>(body);
-        var plan = planner.DuplicatePlan(request.ParsedParameters().Get("sourceGroupId"), request.ParsedParameters().Get("sourcePlanId"),
+        var plan = await planner.DuplicatePlan(request.ParsedParameters().Get("sourceGroupId"), request.ParsedParameters().Get("sourcePlanId"),
             request.ParsedParameters().Get("targetGroupId"), request.ParsedParameters().Get("targetPlanId"),
             duplicationAdjustments);
         if (plan == null)
@@ -128,16 +131,32 @@ public static class Handler
         return OkObject(JsonSerializer.Serialize(plan, DefaultOptions));
     }
 
-    private static HttpResponse GetUserByIdHandler(HttpRequest request)
+    private async static Task<HttpResponse> DuplicateBucketHandler(HttpRequest request)
     {
         var planner = new Planner(request.Headers["authorization"]);
-        var user = planner.GetGraphUser(request.ParsedParameters().Get("userIdOrEmail"));
+        BucketWithDuplicationAdjustments? bucketWithDuplicationAdjustments = null;
+        var body = request.Body.AsString();
+        if (!string.IsNullOrEmpty(body))
+            bucketWithDuplicationAdjustments = JsonSerializer.Deserialize<BucketWithDuplicationAdjustments>(body);
+        if (bucketWithDuplicationAdjustments?.Bucket == null)
+            return BadRequestString("Couldn't parse the expected bucket and duplication adjustments in the body");
+        var bucketId = await planner.DuplicateBucket(request.ParsedParameters().Get("targetPlanId"), bucketWithDuplicationAdjustments);
+        if (bucketId == null)
+            return BadRequestString("Failed to duplicate bucket");
+        return OkObject(bucketId);
+    }
+
+    private async static Task<HttpResponse> GetUserByIdHandler(HttpRequest request)
+    {
+        var planner = new Planner(request.Headers["authorization"]);
+        var user = await planner.GetGraphUser(request.ParsedParameters().Get("userIdOrEmail"));
         if (user == null)
             return BadRequestString($"Failed to identify user by id or email {request.ParsedParameters().Get("userIdOrEmail")}");
         return OkObject(JsonSerializer.Serialize(user, DefaultOptions));
     }
 
-    private static HttpResponse WarmupHandler(HttpRequest request)
+#pragma warning disable 1998
+    private async static Task<HttpResponse> WarmupHandler(HttpRequest request)
     {
         return new HttpResponse
         {
@@ -149,6 +168,7 @@ public static class Handler
             BodyAsString = "warmup",
         };
     }
+#pragma warning restore 1998
 
     private static HttpResponse NotFound()
     {
