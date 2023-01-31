@@ -39,7 +39,7 @@ public static class Handler
     [HttpHandler]
     public static HttpResponse HandleHttpRequest(HttpRequest request)
     {
-        _logger.LogDebug($"Got request: {JsonSerializer.Serialize(request.Url)}");
+        _logger.LogInformation($"Got request: {JsonSerializer.Serialize(request.Url)}");
 
         var requestPath = request.Headers["spin-path-info"];
         var routeFound = _routes.TryGetValue(requestPath, out var handler);
@@ -50,6 +50,8 @@ public static class Handler
         }
         catch (Exception ex)
         {
+            _logger.LogError($"Error during request handling: {ex.Message}");
+            _logger.LogError(ex.StackTrace);
             return BadRequestException(ex);
         }
 

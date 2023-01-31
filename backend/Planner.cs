@@ -26,6 +26,7 @@ namespace planner_exandimport_wasm
 
         private void CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, HttpRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
         {
+            Handler._logger.LogInformation($"Create bucket {bucket.Name}");
             if (bucket.Tasks == null)
                 return;
             bucket.PlanId = targetPlanId;
@@ -99,6 +100,7 @@ namespace planner_exandimport_wasm
                             task.DueDateTime = task.DueDateTime + difference;
                 }
 
+                Handler._logger.LogInformation($"Create task {task.Title}");
                 var newTask = GraphResponse<PlannerTask>.Post("tasks", httpClient, task);
                 // remember new task id for next loop
                 task.Id = newTask!.Id;
@@ -120,6 +122,7 @@ namespace planner_exandimport_wasm
                             // same as order hint
                             reference.PreviewPriority = " !";
 
+                    Handler._logger.LogInformation($"Set task details {task.Title}");
                     var updatedTaskDetailsResponse = GraphResponse<TaskDetailResponse>.Patch("tasks/" + task.Id + "/details", httpClient, task.TaskDetail, newTaskDetailsResponse.OdataEtag!);
                 }
             }
@@ -202,6 +205,7 @@ namespace planner_exandimport_wasm
             if (string.IsNullOrEmpty(sourceGroupId) || string.IsNullOrEmpty(sourcePlanId) || string.IsNullOrEmpty(targetGroupId) || string.IsNullOrEmpty(targetPlanId))
                 return null;
 
+            Handler._logger.LogInformation("Get source plan details");
             var sourcePlanDetails = GetPlanDetails(sourceGroupId, sourcePlanId);
             if (sourcePlanDetails == null)
                 return null;
