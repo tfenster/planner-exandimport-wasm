@@ -8,6 +8,6 @@ public interface IPlanner
     Task<Plan[]?> GetPlans(string? groupId);
     Task<Plan?> GetPlanDetails(string? groupId, string? planId);
     Task<Plan?> DuplicatePlan(string? sourceGroupId, string? sourcePlanId, string? targetGroupId, string? targetPlanId, DuplicationAdjustments? duplicationAdjustments);
-    Task<string?> DuplicateBucket(string? targetPlanId, string? sourceGroupId, string? sourcePlanId, string? sourceBucketId, DuplicationAdjustments? duplicationAdjustments);
+    Task<string?> DuplicateBucket(string? targetPlanId, BucketWithDuplicationAdjustments bucketWithDuplicationAdjustments);
     Task<GraphUser?> GetGraphUser(string? userIdOrEmail);
 }

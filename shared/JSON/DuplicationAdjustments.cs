@@ -33,4 +33,13 @@ namespace planner_exandimport_wasm.shared.JSON
         [JsonPropertyName("replaceWithTodayDate")]
         public DateTimeOffset? ReplaceWithTodayDate { get; set; }
     }
+
+    public class BucketWithDuplicationAdjustments
+    {
+        [JsonPropertyName("bucket")]
+        public Bucket? Bucket { get; set; }
+
+        [JsonPropertyName("duplicationAdjustments")]
+        public DuplicationAdjustments? DuplicationAdjustments { get; set; }
+    }
 }
