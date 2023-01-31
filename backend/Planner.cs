@@ -52,11 +52,26 @@ namespace planner_exandimport_wasm
             if (newBucket == null)
                 return null;
 
-            // if we are too quick the created bucket is not available yet, make sure it is there
-            Thread.Sleep(5 * 1000);
-            var verifyNewBucket = GraphResponse<Bucket>.Get("buckets/" + newBucket.Id, httpClient);
+            Bucket? verifyNewBucket = null;
+            var retryCount = 0;
+            while (verifyNewBucket == null && retryCount < 5)
+            {
+                try
+                {
+                    verifyNewBucket = GraphResponse<Bucket>.Get("buckets/" + newBucket.Id, httpClient);
+                }
+                catch (Exception)
+                {
+                    // probably too early, try again
+                    retryCount++;
+                    Thread.Sleep(retryCount * 1000);
+                }
+            }
+            if (verifyNewBucket == null)
+                return null;
 
             bucket.Tasks = bucket.Tasks.Reverse().ToArray();
+            string? lastTaskId = null;
             foreach (PlannerTask task in bucket.Tasks)
             {
                 task.PlanId = targetPlanId;
@@ -116,10 +131,33 @@ namespace planner_exandimport_wasm
                 var newTask = GraphResponse<PlannerTask>.Post("tasks", httpClient, task);
                 // remember new task id for next loop
                 task.Id = newTask!.Id;
+
+                // remember last task for check
+                lastTaskId = newTask!.Id;
             }
 
-            // if we are too quick the created tasks are not available yet
-            Thread.Sleep(5 * 1000);
+            if (lastTaskId == null)
+                return null;
+
+            // check if last task is available
+            TaskDetailResponse? verifyLastTask = null;
+            retryCount = 0;
+            while (verifyLastTask == null && retryCount < 5)
+            {
+                try
+                {
+                    verifyLastTask = GraphResponse<TaskDetailResponse>.Get("tasks/" + lastTaskId + "/details", httpClient);
+                }
+                catch (Exception)
+                {
+                    // probably too early, try again
+                    retryCount++;   
+                    Thread.Sleep(retryCount * 1000);
+                }
+            }
+            if (verifyLastTask == null)
+                return null;
+
 
             foreach (PlannerTask task in bucket.Tasks)
             {

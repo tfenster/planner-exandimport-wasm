@@ -17,7 +17,6 @@ public static class Handler
     private delegate Task<HttpResponse> RequestHandlerDelegate(HttpRequest request);
     private static Dictionary<string, RequestHandlerDelegate> _routes = new Dictionary<string, RequestHandlerDelegate>()
     {
-        { Warmup.DefaultWarmupUrl, WarmupHandler },
         { "/groups", GroupsHandler },
         { "/plans", PlansHandler },
         { "/planDetails", PlanDetailsHandler },
@@ -40,6 +39,17 @@ public static class Handler
     [HttpHandler]
     public static HttpResponse HandleHttpRequest(HttpRequest request)
     {
+        if (request.Url == Warmup.DefaultWarmupUrl)
+            return new HttpResponse
+            {
+                StatusCode = System.Net.HttpStatusCode.OK,
+                Headers = new Dictionary<string, string>
+                {
+                    { "Content-Type", "text/plain" },
+                },
+                BodyAsString = "warmup",
+            };
+
         _logger.LogInformation($"Got request: {JsonSerializer.Serialize(request.Url)}");
 
         var requestPath = request.Headers["spin-path-info"];
@@ -154,21 +164,6 @@ public static class Handler
             return BadRequestString($"Failed to identify user by id or email {request.ParsedParameters().Get("userIdOrEmail")}");
         return OkObject(JsonSerializer.Serialize(user, DefaultOptions));
     }
-
-#pragma warning disable 1998
-    private async static Task<HttpResponse> WarmupHandler(HttpRequest request)
-    {
-        return new HttpResponse
-        {
-            StatusCode = System.Net.HttpStatusCode.OK,
-            Headers = new Dictionary<string, string>
-            {
-                { "Content-Type", "text/plain" },
-            },
-            BodyAsString = "warmup",
-        };
-    }
-#pragma warning restore 1998
 
     private static HttpResponse NotFound()
     {

@@ -2,7 +2,7 @@ spin_version = "1"
 authors = ["Tobias Fenster <tfenster@4psbau.de>"]
 description = ""
 name = "Planner-ExAndImport-Wasm"
-version = "1.0.0"
+version = "1.1.0"
 trigger = { type = "http", base = "/" }
 
 [[component]]

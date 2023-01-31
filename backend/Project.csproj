@@ -20,7 +20,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup>
-      <UseWizer>false</UseWizer>
+      <UseWizer>true</UseWizer>
   </PropertyGroup>
 
 </Project>
