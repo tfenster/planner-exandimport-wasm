@@ -59,7 +59,7 @@
                                 <PropertyColumn Property="g=>g!.Description" />
                             </RowTemplate>
                             <ExpandTemplate Context="rowdata">
-                                <Table @ref="planTables[rowdata.Data.Id + current]" DataSource="rowdata.Data.Plans!"
+                                <Table @ref="planTables[rowdata.Data.Id + current]" DataSource="rowdata.Data.Plans"
                             Loading="rowdata.Data.Plans==null" TItem="Plan">
                                     <RowTemplate>
                                         <PropertyColumn Property="p=>p!.Title" />
@@ -97,8 +97,7 @@
                         <Checkbox @bind-Checked="refDateChecked" OnChange="InvertRefDateChecked">
                             Adjust start / due date according to reference date difference
                         </Checkbox><br />
-                        <RangePicker TValue="DateTime?[]" @bind-Value="refDates" OnChange="OnRangeChange"
-                        @bind-Disabled="invertedRefDateChecked" />
+                        <RangePicker TValue="DateTime?[]" @bind-Value="refDates" @bind-Disabled="invertedRefDateChecked" />
                     </p>
                     <p>
                         <Checkbox @bind-Checked="todayDateChecked" OnChange="InvertTodayDateChecked">
@@ -277,25 +276,22 @@
         StateHasChanged();
     }
 
-    private void OnRangeChange(DateRangeChangedEventArgs args)
-    {
-        Console.WriteLine($"Selected Time: {JsonSerializer.Serialize(args.Dates)}");
-        Console.WriteLine($"Formatted Selected Time: {JsonSerializer.Serialize(args.DateStrings)}");
-    }
-
     private void InvertRefDateChecked(bool value)
     {
         invertedRefDateChecked = !refDateChecked;
+        StateHasChanged();
     }
 
     private void InvertTodayDateChecked(bool value)
     {
         invertedTodayDateChecked = !todayDateChecked;
+        StateHasChanged();
     }
 
     private void InvertReplaceUsersChecked(bool value)
     {
         invertedReplaceUsersChecked = !replaceUsersChecked;
+        StateHasChanged();
     }
 
     void OnPreClick()
@@ -335,11 +331,35 @@
         try
         {
             disableButtons = true;
+            StateHasChanged();
             await message.Info("Starting to duplicate plan...");
-            var newPlan = await GroupService.DuplicatePlan(selectedGroups[0].Id, selectedPlans[0].Id, selectedGroups[1].Id,
-            selectedPlans[1].Id,
-            duplicationAdjustments);
-            if (newPlan != null)
+            var sourcePlanDetails = await GroupService.GetPlanDetails(selectedGroups[0].Id, selectedPlans[0].Id);
+            var allBuckets = true;
+            if (sourcePlanDetails?.Buckets != null)
+            {
+                sourcePlanDetails.Buckets = sourcePlanDetails.Buckets.Reverse().ToArray();
+
+                // create buckets and tasks and then set details for the created tasks (can't be done in one step)
+                foreach (Bucket bucket in sourcePlanDetails.Buckets)
+                {
+                    await message.Info($"Working on bucket {bucket.Name}");
+                    var newBucketId = await GroupService.DuplicateBucket(selectedPlans[1].Id, new BucketWithDuplicationAdjustments()
+                        {
+                            Bucket = bucket,
+                            DuplicationAdjustments = duplicationAdjustments
+                        });
+                    if (newBucketId == null)
+                    {
+                        await message.Error($"Failed to duplicate bucket {bucket.Name}");
+                        allBuckets = false;
+                    }
+                    else
+                    {
+                        await message.Info($"Bucket {bucket.Name} duplicated successfully");
+                    }
+                }
+            }
+            if (allBuckets)
             {
                 await message.Success("Plan duplicated successfully");
             }
@@ -354,6 +374,7 @@
             Console.WriteLine(ex);
         }
         disableButtons = false;
+        StateHasChanged();
     }
 
     record MappingData(string Id)
@@ -401,6 +422,7 @@
                 break;
         }
         editIds[which] = null;
+        StateHasChanged();
     }
 
     private async Task<string> UserHandling(string? email)
@@ -411,7 +433,7 @@
         }
         try
         {
-            var user = await GroupService.GetUser(email);
+            var user = await GroupService.GetGraphUser(email);
             if (user == null || string.IsNullOrEmpty(user.Id))
             {
                 await _message.Warning($"Couldn't find user {email}");
