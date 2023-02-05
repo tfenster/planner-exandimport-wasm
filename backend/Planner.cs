@@ -125,6 +125,9 @@ namespace planner_exandimport_wasm
                             task.DueDateTime = DateTimeOffset.Now;
                         else
                             task.DueDateTime = task.DueDateTime + difference;
+                    if (task.DueDateTime == null)
+                        if (duplicationAdjustments.DateAdjustment.CopyStartToDueDate)
+                            task.DueDateTime = task.StartDateTime;
                 }
 
                 Handler._logger.LogInformation($"Create task {task.Title}");
