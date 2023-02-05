@@ -34,7 +34,7 @@ namespace planner_exandimport_wasm.shared.JSON
         public DateTimeOffset? ReplaceWithTodayDate { get; set; }
 
         [JsonPropertyName("copyStartToDueDate")]
-        public bool? CopyStartToDueDate { get; set; }
+        public bool CopyStartToDueDate { get; set; }
     }
 
     public class BucketWithDuplicationAdjustments
