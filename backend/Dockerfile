@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /opt/build
 
-RUN rustup default stable && cargo install wizer --all-features && curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && sudo mv spin /usr/local/bin/
+RUN curl -fsSL https://sh.rustup.rs | bash && rustup default stable && cargo install wizer --all-features && curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && sudo mv spin /usr/local/bin/
 
 COPY ./Project.csproj .
 RUN dotnet restore
