@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+WORKDIR /opt/build
+
+RUN apt update && apt install -y build-essential && curl -fsSL https://sh.rustup.rs | bash -s -- -y && export PATH=$PATH:$HOME/.cargo/bin && rustup default stable && cargo install wizer --all-features
+RUN curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && mv spin /usr/local/bin/
+
+WORKDIR /opt/build/shared
+COPY ./shared/shared.csproj .
+RUN dotnet restore
+
+WORKDIR /opt/build/backend
+COPY ./backend/Project.csproj .
+RUN dotnet restore
+
+WORKDIR /opt/build/
+COPY . .
+
+WORKDIR /opt/build/backend
+RUN spin build
