@@ -52,29 +52,31 @@ public static class Handler
 
         _logger.LogInformation($"Got request: {JsonSerializer.Serialize(request.Url)}");
 
-        var requestPath = request.Headers["spin-path-info"];
-        var routeFound = _routes.TryGetValue(requestPath, out var handler);
-
         try
         {
-            if (routeFound && null != handler) return handler(request).Result;
+            var requestPath = request.Headers["spin-path-info"];
+            var routeFound = _routes.TryGetValue(requestPath, out var handler);
+
+            if (routeFound && null != handler)
+                return handler(request).Result;
+            else
+                return new HttpResponse
+                {
+                    StatusCode = System.Net.HttpStatusCode.NotFound,
+                    Headers = new Dictionary<string, string>
+                    {
+                        { "Content-Type", "text/plain" },
+                    },
+                    BodyAsString = "Requested route not found",
+                };
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error during request handling: {ex.Message}");
+            _logger.LogError($"Error during request handling:");
+            _logger.LogError($"{ex.Message}");
             _logger.LogError(ex.StackTrace);
             return BadRequestException(ex);
         }
-
-        return new HttpResponse
-        {
-            StatusCode = System.Net.HttpStatusCode.NotFound,
-            Headers = new Dictionary<string, string>
-            {
-                { "Content-Type", "text/plain" },
-            },
-            BodyAsString = "Requested route not found",
-        };
     }
 
 #pragma warning disable 1998
