@@ -16,7 +16,7 @@ WORKDIR /opt/build/
 COPY . .
 
 WORKDIR /opt/build/backend
-RUN spin build
+RUN PATH=$PATH:$HOME/.cargo/bin spin build
 
 FROM scratch
 COPY --from=build /opt/build/backend/bin/Release/net7.0/planner_exandimport_wasm.wasm .
