@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "3000:80"
+  frontend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.frontend
+    environment:
+      - BackendBaseUrl=http://backend:80
+      - AzureAd__ClientId=dd0f61d4-5801-402d-8d75-a8e74af8d681
+      - AzureAd__TenantId=92f4dd01-f0ea-4b5f-97f2-505c2945189c
+      - AzureAd__ClientSecret=G~g8Q~kRNStaP3qmzoi53equGd.ribkKEorl5bx1
+    depends_on:
+      - backend
