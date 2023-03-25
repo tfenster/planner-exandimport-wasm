@@ -21,3 +21,4 @@ RUN PATH=$PATH:$HOME/.cargo/bin spin build
 FROM scratch
 COPY --from=build /opt/build/backend/bin/Release/net7.0/planner_exandimport_wasm.wasm .
 COPY --from=build /opt/build/backend/spin.toml.container ./spin.toml
+ENTRYPOINT [ "/planner_exandimport_wasm.wasm" ]
