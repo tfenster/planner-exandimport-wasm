@@ -15,11 +15,18 @@ COPY ./frontend/ ./frontend/
 COPY ./shared/ ./shared/
 
 WORKDIR /src/frontend
-RUN dotnet publish --no-restore -c Release -r alpine-x64 -o /app/publish /p:PublishTrimmed=true /p:PublishReadyToRun=true /p:PublishSingleFile=true --self-contained true
+RUN dotnet publish --no-restore -c Release -r alpine-x64 -o /app/publish /p:PublishReadyToRun=true /p:PublishSingleFile=true --self-contained true
+
+RUN dotnet dev-certs https
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:7.0-alpine AS final
-EXPOSE 80
-ENV ASPNETCORE_URLS=http://+:80
+EXPOSE 80 443
+ENV ASPNETCORE_URLS=http://+:80;https://+:443
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my/* /app/.dotnet/corefx/cryptography/x509stores/my/
+
+RUN apk add --no-cache icu-libs
 
 RUN adduser --disabled-password --home /app --gecos '' nonroot && chown -R nonroot /app
 USER nonroot
