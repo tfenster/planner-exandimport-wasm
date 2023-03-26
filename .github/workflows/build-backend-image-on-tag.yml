@@ -38,3 +38,4 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         file: Dockerfile.backend
+        push: true
