@@ -1,0 +1,40 @@
+name: Build backend image on tag
+
+on:
+  push:
+    tags:
+    - 'v*' 
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - 
+      name: Checkout
+      uses: actions/checkout@v3
+    -
+      name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          tobiasfenster/planner-exandimport-wasm-backend
+    
+    - 
+      name: Docker login
+      uses: azure/docker-login@v1
+      with:
+        username: ${{ secrets.docker_user }}
+        password: ${{ secrets.docker_pwd }}
+
+    -
+      name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        file: Dockerfile.backend
