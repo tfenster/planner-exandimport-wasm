@@ -32,8 +32,6 @@ builder.Services.AddScoped<BackendService>();
 
 var app = builder.Build();
 
-app.UseForwardedHeaders();
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
