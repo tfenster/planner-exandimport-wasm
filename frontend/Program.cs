@@ -7,21 +7,8 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web.UI;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.HttpLogging;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-});
-
-builder.Services.AddHttpLogging(options =>
-{
-    options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders;
-});
 
 // Add services to the container.
 builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
@@ -46,19 +33,6 @@ builder.Services.AddScoped<BackendService>();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-app.UseHttpLogging();
-
-app.Use(async (context, next) =>
-{
-    // Connection: RemoteIp
-    app.Logger.LogInformation("Request RemoteIp: {RemoteIpAddress}",
-        context.Connection.RemoteIpAddress);
-
-    app.Logger.LogInformation("Request RemoteIp: {RemotePort}",
-        context.Connection.RemotePort);
-
-    await next(context);
-});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
