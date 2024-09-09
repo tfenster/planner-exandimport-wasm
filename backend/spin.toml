@@ -7,7 +7,7 @@ trigger = { type = "http", base = "/" }
 
 [[component]]
 id = "planner_exandimport_wasm"
-source = "planner_exandimport_wasm.wasm"
+source = "/workspaces/planner-exandimport-wasm/backend/bin/Release/net7.0/planner_exandimport_wasm.wasm"
 allowed_http_hosts = ["https://graph.microsoft.com"]
 [component.build]
 command = "dotnet build -c Release"

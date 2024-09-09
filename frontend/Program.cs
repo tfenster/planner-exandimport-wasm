@@ -40,6 +40,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseCookiePolicy(new CookiePolicyOptions()
+{
+    MinimumSameSitePolicy = SameSiteMode.Unspecified
+});
+
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();

@@ -1,1 +1,4 @@
 temp
+**/.spin/logs
+*.pem
+*.sig
