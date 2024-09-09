@@ -1,0 +1,24 @@
+clone repo with SSH --> not in container!
+open repo
+open folder in container --> root --> select config file
+if login context error --> direkt per RDP
+open corresponding workspace
+
+backend: 
+configure tasks.json "build and run" for right IP
+run task "build and run"
+
+
+frontend: 
+dotnet restore
+dotnet dev-certs https --trust
+
+adjust settings in appsettings.Development.json
+BackendBaseUrl http://172.17.0.3:3000 (adjust for backend IP)
+ClientId dd0f61d4-5801-402d-8d75-a8e74af8d681
+TenantId 92f4dd01-f0ea-4b5f-97f2-505c2945189c
+ClientSecret ...
+
+hit F5
+
+open https://localhost:7100
