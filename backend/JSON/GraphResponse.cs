@@ -46,9 +46,9 @@ public class GraphResponse<Type>
             outboundReq.Headers = outboundReq.Headers.Append(new KeyValuePair<string, string>("Content-type", "application/json")).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        Handler._logger.LogDebug($"outbound req: {JsonSerializer.Serialize(outboundReq)}");
+        //Handler._logger.LogDebug($"outbound req: {JsonSerializer.Serialize(outboundReq)}");
         var response = HttpOutbound.Send(outboundReq);
-        Handler._logger.LogDebug($"outbound response: {JsonSerializer.Serialize(response)}");
+        //Handler._logger.LogDebug($"outbound response: {JsonSerializer.Serialize(response)}");
         response.EnsureSuccessStatusCode();
         if (string.IsNullOrEmpty(response.BodyAsString))
             return default(Type);
