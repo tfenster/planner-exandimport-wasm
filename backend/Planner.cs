@@ -239,7 +239,7 @@ namespace planner_exandimport_wasm
             if (tasks != null)
                 foreach (var task in tasks)
                 {
-                    Handler._logger.LogDebug($"task id: {task.Id}");
+                    Handler._logger.LogDebug($"task id: {task.Id} - task title: {task.Title}");
                     task.TaskDetail = GraphResponse<TaskDetailResponse>.Get($"tasks/{task.Id}/details", httpRequestPlanner);
                 }
             Handler._logger.LogDebug($"tasks after: {JsonSerializer.Serialize(tasks)}");
