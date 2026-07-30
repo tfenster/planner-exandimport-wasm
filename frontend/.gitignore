@@ -1,2 +1,5 @@
 bin
 obj
+
+# Contains real Azure AD secrets for local dev; copy appsettings.Development.json.example and fill in.
+appsettings.Development.json
