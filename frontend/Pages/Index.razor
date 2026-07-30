@@ -92,29 +92,29 @@
                     </ul>
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="refDateChecked" OnChange="InvertRefDateChecked">
+                        <Checkbox @bind-Checked="refDateChecked">
                             Adjust start / due date according to reference date difference
                         </Checkbox><br />
-                        <RangePicker TValue="DateTime?[]" @bind-Value="refDates" @bind-Disabled="invertedRefDateChecked" />
+                        <RangePicker @key="refDateChecked" TValue="DateTime?[]" @bind-Value="refDates" Disabled="!refDateChecked" />
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="todayDateChecked" OnChange="InvertTodayDateChecked">
+                        <Checkbox @bind-Checked="todayDateChecked">
                             Adjust start / due date to today's date for this date
                         </Checkbox><br />
-                        <DatePicker TValue="DateTime?" @bind-Value="todayDate" @bind-Disabled="invertedTodayDateChecked" />
+                        <DatePicker @key="todayDateChecked" TValue="DateTime?" @bind-Value="todayDate" Disabled="!todayDateChecked" />
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="copyStartToDueDateChecked" OnChange="InvertCopyStartToDueDateChecked">
+                        <Checkbox @bind-Checked="copyStartToDueDateChecked">
                             Copy start date to due date if due date is empty
                         </Checkbox><br />
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="replaceUsersChecked" OnChange="InvertReplaceUsersChecked">
+                        <Checkbox @bind-Checked="replaceUsersChecked">
                             Replace users
                         </Checkbox><br />
 
                         <Button OnClick="addRow" Type="ButtonType.Primary" Style="margin-bottom:16px"
-                            disabled=@invertedReplaceUsersChecked>
+                            disabled=@(!replaceUsersChecked)>
                             Add mapping
                         </Button>
                     <Table DataSource="listOfData" RowClassName="@(_=>"editable-row")" Bordered>
@@ -122,7 +122,7 @@
                             @if (editIds[0] == context.Id)
                                 {
                                 <Input Type="InputType.Text" @bind-Value="context.sourceEmail" @onblur="@((args)=>stopEdit(0))" AutoFocus
-                                                    disabled=@invertedReplaceUsersChecked />
+                                                    disabled=@(!replaceUsersChecked) />
                                 }
                                 else
                                 {
@@ -138,7 +138,7 @@
                                 @if (editIds[1] == context.Id)
                                 {
                                 <Input Type="InputType.Text" @bind-Value="context.targetEmail" @onblur="@((args)=>stopEdit(1))" AutoFocus
-                                                    disabled=@invertedReplaceUsersChecked />
+                                                    disabled=@(!replaceUsersChecked) />
                                 }
                                 else
                                 {
@@ -223,15 +223,11 @@
     private Plan[] selectedPlans = new Plan[2];
     private Dictionary<string, Table<Plan>> planTables = new Dictionary<string, Table<Plan>>();
     private bool refDateChecked = false;
-    private bool invertedRefDateChecked = true;
     private DateTime?[] refDates = new DateTime?[2];
     private bool todayDateChecked = false;
-    private bool invertedTodayDateChecked = true;
     private DateTime? todayDate = null;
     private bool replaceUsersChecked = false;
-    private bool invertedReplaceUsersChecked = true;
     private bool copyStartToDueDateChecked = false;
-    private bool invertedCopyStartToDueDateChecked = true;
     private bool disableButtons = false;
 
 
@@ -278,30 +274,6 @@
 
         group.Plans = await GroupService.GetPlans(group.Id);
 
-        StateHasChanged();
-    }
-
-    private void InvertRefDateChecked(bool value)
-    {
-        invertedRefDateChecked = !refDateChecked;
-        StateHasChanged();
-    }
-
-    private void InvertTodayDateChecked(bool value)
-    {
-        invertedTodayDateChecked = !todayDateChecked;
-        StateHasChanged();
-    }
-
-    private void InvertReplaceUsersChecked(bool value)
-    {
-        invertedReplaceUsersChecked = !replaceUsersChecked;
-        StateHasChanged();
-    }
-
-    private void InvertCopyStartToDueDateChecked(bool value)
-    {
-        invertedCopyStartToDueDateChecked = !copyStartToDueDateChecked;
         StateHasChanged();
     }
 
