@@ -11,6 +11,5 @@ services:
       - AzureAd__ClientSecret=...
     ports:
       - "3000:80"
-      - "3001:443"
     depends_on:
       - backend
