@@ -14,7 +14,7 @@
 <div>
     <Layout>
         <Sider Class="site-layout-background">
-            <Steps Current="current" Direction="vertical">
+            <Steps Current="current" Direction="StepsDirection.Vertical">
                 <Step Title="Select source plan" Description="Select a group and plan as source for duplication" />
                 <Step Title="Select target plan" Description="Select a group and plan as target for duplication" />
                 <Step Title="Make adjustments" Description="Make adjustments (optional)" />
@@ -65,7 +65,7 @@
                                         <PropertyColumn Property="p=>p!.Title" />
                                         <PropertyColumn Property="p=>p!.CreatedByGraphUser!.DisplayName" Title="Created by" />
                                         <ActionColumn Title="Select">
-                                            <Button OnClick="p => OnSelect(rowdata.Data, context)">Select</Button>
+                                            <Button OnClick="p => OnSelect(rowdata.Data, context.Data)">Select</Button>
                                         </ActionColumn>
                                     </RowTemplate>
                                 </Table>
@@ -115,7 +115,7 @@
                             Replace users
                         </Checkbox><br />
 
-                        <Button OnClick="addRow" Type="primary" Style="margin-bottom:16px"
+                        <Button OnClick="addRow" Type="ButtonType.Primary" Style="margin-bottom:16px"
                             disabled=@invertedReplaceUsersChecked>
                             Add mapping
                         </Button>
@@ -123,7 +123,7 @@
                     <PropertyColumn Width="30%" Property="c=>c.sourceEmail">
                             @if (editIds[0] == context.Id)
                                 {
-                                <Input Type="text" @bind-Value="context.sourceEmail" @onblur="@((args)=>stopEdit(0))" AutoFocus
+                                <Input Type="InputType.Text" @bind-Value="context.sourceEmail" @onblur="@((args)=>stopEdit(0))" AutoFocus
                                                     disabled=@invertedReplaceUsersChecked />
                                 }
                                 else
@@ -139,7 +139,7 @@
                         <PropertyColumn Width="30%" Property="c=>c.targetEmail">
                                 @if (editIds[1] == context.Id)
                                 {
-                                <Input Type="text" @bind-Value="context.targetEmail" @onblur="@((args)=>stopEdit(1))" AutoFocus
+                                <Input Type="InputType.Text" @bind-Value="context.targetEmail" @onblur="@((args)=>stopEdit(1))" AutoFocus
                                                     disabled=@invertedReplaceUsersChecked />
                                 }
                                 else
@@ -167,11 +167,11 @@
             <div class="steps-action">
                 @if (current > 0)
                 {
-                    <Button Type="primary" OnClick="OnPreClick" disabled=@disableButtons>Previous</Button>
+                    <Button Type="ButtonType.Primary" OnClick="OnPreClick" disabled=@disableButtons>Previous</Button>
                 }
                 @if (current == 2)
                 {
-                    <Button Type="primary" OnClick="OnDuplicateClick" disabled=@disableButtons>
+                    <Button Type="ButtonType.Primary" OnClick="OnDuplicateClick" disabled=@disableButtons>
                         Duplicate
                     </Button>
                 }
@@ -346,7 +346,7 @@
         {
             disableButtons = true;
             StateHasChanged();
-            await message.Info("Starting to duplicate plan...");
+            message.Info("Starting to duplicate plan...");
             var sourcePlanDetails = await GroupService.GetPlanDetails(selectedGroups[0].Id, selectedPlans[0].Id);
             var allBuckets = true;
             if (sourcePlanDetails?.Buckets != null)
@@ -356,7 +356,7 @@
                 // create buckets and tasks and then set details for the created tasks (can't be done in one step)
                 foreach (Bucket bucket in sourcePlanDetails.Buckets)
                 {
-                    await message.Info($"Working on bucket {bucket.Name}");
+                    message.Info($"Working on bucket {bucket.Name}");
                     var newBucketId = await GroupService.DuplicateBucket(selectedPlans[1].Id, new BucketWithDuplicationAdjustments()
                         {
                             Bucket = bucket,
@@ -364,27 +364,27 @@
                         });
                     if (newBucketId == null)
                     {
-                        await message.Error($"Failed to duplicate bucket {bucket.Name}");
+                        message.Error($"Failed to duplicate bucket {bucket.Name}");
                         allBuckets = false;
                     }
                     else
                     {
-                        await message.Info($"Bucket {bucket.Name} duplicated successfully");
+                        message.Info($"Bucket {bucket.Name} duplicated successfully");
                     }
                 }
             }
             if (allBuckets)
             {
-                await message.Success("Plan duplicated successfully");
+                message.Success("Plan duplicated successfully");
             }
             else
             {
-                await message.Error("Plan duplication failed");
+                message.Error("Plan duplication failed");
             }
         }
         catch (Exception ex)
         {
-            await message.Error("Plan duplication failed");
+            message.Error("Plan duplication failed");
             Console.WriteLine(ex);
         }
         disableButtons = false;
@@ -450,15 +450,15 @@
             var user = await GroupService.GetGraphUser(email);
             if (user == null || string.IsNullOrEmpty(user.Id))
             {
-                await _message.Warning($"Couldn't find user {email}");
+                _message.Warning($"Couldn't find user {email}");
                 return "";
             }
-            await _message.Success($"Identified user {email}");
+            _message.Success($"Identified user {email}");
             return user.Id;
         }
         catch (Exception)
         {
-            await _message.Error($"Couldn't find user {email}");
+            _message.Error($"Couldn't find user {email}");
             return "";
         }
     }

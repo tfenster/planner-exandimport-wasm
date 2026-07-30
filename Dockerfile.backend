@@ -1,24 +1,19 @@
-FROM --platform=${BUILDPLATFORM} mcr.microsoft.com/dotnet/sdk:7.0 AS build
-WORKDIR /opt/build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
 
-RUN apt update && apt install -y build-essential && curl -fsSL https://sh.rustup.rs | bash -s -- -y && export PATH=$PATH:$HOME/.cargo/bin && rustup default stable && cargo install wizer --all-features
-RUN curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && mv spin /usr/local/bin/
+COPY ./shared/shared.csproj ./shared/
+COPY ./backend/Project.csproj ./backend/
+RUN dotnet restore ./backend/Project.csproj
 
-WORKDIR /opt/build/shared
-COPY ./shared/shared.csproj .
-RUN dotnet restore
+COPY ./shared/ ./shared/
+COPY ./backend/ ./backend/
+RUN dotnet publish ./backend/Project.csproj --no-restore -c Release -o /app/publish
 
-WORKDIR /opt/build/backend
-COPY ./backend/Project.csproj .
-RUN dotnet restore
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+EXPOSE 80
+ENV ASPNETCORE_URLS=http://+:80
 
-WORKDIR /opt/build/
-COPY . .
+WORKDIR /app
+COPY --from=build /app/publish .
 
-WORKDIR /opt/build/backend
-RUN PATH=$PATH:$HOME/.cargo/bin spin build
-
-FROM scratch
-COPY --from=build /opt/build/backend/bin/Release/net7.0/planner_exandimport_wasm.wasm .
-COPY --from=build /opt/build/backend/spin.toml.container ./spin.toml
-ENTRYPOINT [ "/planner_exandimport_wasm.wasm" ]
+ENTRYPOINT ["dotnet", "planner_exandimport_wasm.dll"]

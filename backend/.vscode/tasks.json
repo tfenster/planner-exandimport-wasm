@@ -5,9 +5,15 @@
     "tasks": [
         {
             "label": "build",
-            "type": "shell",
-            "command": "spin build",
-            "problemMatcher": [],
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Project.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -15,15 +21,26 @@
         },
         {
             "label": "run",
-            "type": "shell",
-            "command": "spin up",
-            "problemMatcher": []
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/Project.csproj"
+            ],
+            "problemMatcher": "$msCompile"
         },
         {
-            "label": "build and run",
-            "type": "shell",
-            "command": "spin build --up --listen 172.17.0.3:3000",
-            "problemMatcher": []
+            "label": "watch",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "watch",
+                "run",
+                "--project",
+                "${workspaceFolder}/Project.csproj"
+            ],
+            "problemMatcher": "$msCompile"
         }
     ]
 }

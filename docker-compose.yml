@@ -2,7 +2,6 @@ version: "3.9"
 services:
   backend:
     image: tobiasfenster/planner-exandimport-wasm-backend:latest
-    runtime: io.containerd.spin.v1
   frontend:
     image: tobiasfenster/planner-exandimport-wasm-frontend:latest
     environment:

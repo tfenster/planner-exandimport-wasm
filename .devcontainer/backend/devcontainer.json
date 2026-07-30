@@ -1,20 +1,15 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
-	"name": "C# (.NET) with spin",
+	"name": "C# (.NET)",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/dotnet:0-7.0",
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	"image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		3000
+		5000
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "cargo install wizer --all-features && curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash && sudo mv spin /usr/local/bin/ && dotnet restore && spin build",
-	"features": {
-		"ghcr.io/devcontainers/features/rust:1": {}
-	},
+	"postCreateCommand": "dotnet restore",
 	"customizations": {
 		"vscode": {
 			"extensions": [
