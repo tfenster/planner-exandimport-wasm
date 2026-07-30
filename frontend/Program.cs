@@ -39,7 +39,12 @@ builder.Services.AddScoped<BackendService>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // The ingress controller is a trusted proxy inside the cluster.
+    // Clearing the known networks/proxies makes X-Forwarded-* trusted from any
+    // caller. This is safe here because the pod is only reachable through the
+    // nginx ingress (ClusterIP Service, no NodePort/hostPort), so an untrusted
+    // client can't reach it directly to spoof the scheme/remote IP. If the app
+    // is ever exposed without the ingress in front, restrict these to the
+    // ingress controller's network/CIDR instead.
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });

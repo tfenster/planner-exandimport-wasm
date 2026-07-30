@@ -95,13 +95,13 @@
                         <Checkbox @bind-Checked="refDateChecked">
                             Adjust start / due date according to reference date difference
                         </Checkbox><br />
-                        <RangePicker @key="refDateChecked" TValue="DateTime?[]" @bind-Value="refDates" Disabled="!refDateChecked" />
+                        <RangePicker @key="refDateChecked" TValue="DateTime?[]" @bind-Value="refDates" Disabled="@(!refDateChecked)" />
                     </p>
                     <p>
                         <Checkbox @bind-Checked="todayDateChecked">
                             Adjust start / due date to today's date for this date
                         </Checkbox><br />
-                        <DatePicker @key="todayDateChecked" TValue="DateTime?" @bind-Value="todayDate" Disabled="!todayDateChecked" />
+                        <DatePicker @key="todayDateChecked" TValue="DateTime?" @bind-Value="todayDate" Disabled="@(!todayDateChecked)" />
                     </p>
                     <p>
                         <Checkbox @bind-Checked="copyStartToDueDateChecked">

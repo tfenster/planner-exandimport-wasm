@@ -55,23 +55,27 @@ https://fps-alpaca.westeurope.cloudapp.azure.com/planner/authentication/login-ca
 
 This is the host + `/planner` path base + the app's configured `CallbackPath`.
 
-## 2. Provide the client secret
+## 2. Create the client-secret Secret (required, before applying)
 
-The `AZUREAD__CLIENTSECRET` value in `manifest.yaml` is a placeholder
-(`REPLACE_WITH_CLIENT_SECRET`). Do **not** commit the real secret. Either edit
-it locally right before applying, or set it separately after applying the
-manifest:
+The manifest intentionally contains **no** secret material — the non-secret
+Azure AD config lives in a `ConfigMap`, and the client secret must be created
+out-of-band. This way re-applying `manifest.yaml` can never overwrite a live
+secret with a placeholder.
+
+Create the `planner-exandimport-secrets` Secret with just the client secret
+(the namespace must exist first — either apply step 3 first, or create it with
+`kubectl create namespace planner-exandimport`):
 
 ```bash
 kubectl -n planner-exandimport create secret generic planner-exandimport-secrets \
-  --from-literal=AZUREAD__INSTANCE='https://login.microsoftonline.com/' \
-  --from-literal=AZUREAD__TENANTID='92f4dd01-f0ea-4b5f-97f2-505c2945189c' \
-  --from-literal=AZUREAD__CLIENTID='dd0f61d4-5801-402d-8d75-a8e74af8d681' \
   --from-literal=AZUREAD__CLIENTSECRET='<the-real-secret>' \
-  --from-literal=AZUREAD__CALLBACKPATH='/authentication/login-callback' \
-  --from-literal=AZUREAD__AUDIENCE='https://graph.microsoft.com/' \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+The frontend Deployment references this Secret via `envFrom`, so it must exist
+or the pod stays in `CreateContainerConfigError`. To rotate the secret later,
+re-run this command and restart the deployment
+(`kubectl -n planner-exandimport rollout restart deployment/planner-frontend`).
 
 ## 3. Apply the manifest
 
@@ -98,15 +102,16 @@ land back in the app.
 
 ## Configuration reference
 
-Frontend environment (set via the Secret and the Deployment's `env`):
+Frontend environment (set via the ConfigMap, the Secret, and the Deployment's `env`):
 
-| Variable                | Value / source                          | Purpose                                    |
-| ----------------------- | --------------------------------------- | ------------------------------------------ |
-| `PathBase`              | `/planner`                              | Sub-path the app is served under.          |
-| `BackendBaseUrl`        | `http://planner-backend`                | In-cluster address of the backend service. |
-| `ASPNETCORE_URLS`       | `http://+:8080`                         | Kestrel listens on 8080 (non-privileged).  |
-| `ASPNETCORE_ENVIRONMENT`| `Production`                            | Environment.                               |
-| `AZUREAD__*`            | Secret `planner-exandimport-secrets`    | Azure AD / OpenID Connect settings.        |
+| Variable                | Value / source                                   | Purpose                                    |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------ |
+| `PathBase`              | `/planner`                                       | Sub-path the app is served under.          |
+| `BackendBaseUrl`        | `http://planner-backend`                         | In-cluster address of the backend service. |
+| `ASPNETCORE_URLS`       | `http://+:8080`                                  | Kestrel listens on 8080 (non-privileged).  |
+| `ASPNETCORE_ENVIRONMENT`| `Production`                                     | Environment.                               |
+| `AZUREAD__CLIENTSECRET` | Secret `planner-exandimport-secrets` (out-of-band) | Azure AD client secret.                  |
+| `AZUREAD__*` (others)   | ConfigMap `planner-exandimport-config`           | Non-secret Azure AD / OpenID Connect config. |
 
 To change the host or path, edit the `Ingress` rule and the frontend
 `PathBase` env together (they must match), and update the registered Azure AD

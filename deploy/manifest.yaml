@@ -11,24 +11,29 @@
 # Before Azure AD login works you must register this redirect URI on the app
 # registration (client id below):
 #   https://fps-alpaca.westeurope.cloudapp.azure.com/planner/authentication/login-callback
+#
+# The client secret is intentionally NOT in this manifest. Create the
+# 'planner-exandimport-secrets' Secret out-of-band BEFORE applying this file, so
+# that re-applying the manifest can never overwrite a live secret with a
+# placeholder. See deploy/README.md for the exact command. The Secret only needs
+# to contain AZUREAD__CLIENTSECRET.
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: planner-exandimport
 ---
-# Azure AD / OpenID Connect configuration for the FRONTEND only.
+# Non-secret Azure AD / OpenID Connect configuration for the FRONTEND.
+# (Tenant id and client id are public identifiers, not secrets.)
 apiVersion: v1
-kind: Secret
+kind: ConfigMap
 metadata:
-  name: planner-exandimport-secrets
+  name: planner-exandimport-config
   namespace: planner-exandimport
-type: Opaque
-stringData:
+data:
   AZUREAD__INSTANCE: "https://login.microsoftonline.com/"
   AZUREAD__TENANTID: "92f4dd01-f0ea-4b5f-97f2-505c2945189c"
   AZUREAD__CLIENTID: "dd0f61d4-5801-402d-8d75-a8e74af8d681"
-  AZUREAD__CLIENTSECRET: "REPLACE_WITH_CLIENT_SECRET"
   AZUREAD__CALLBACKPATH: "/authentication/login-callback"
   AZUREAD__AUDIENCE: "https://graph.microsoft.com/"
 ---
@@ -127,6 +132,11 @@ spec:
           ports:
             - containerPort: 8080
           envFrom:
+            # Non-secret Azure AD config.
+            - configMapRef:
+                name: planner-exandimport-config
+            # Client secret; this Secret must be created out-of-band before
+            # applying the manifest (see deploy/README.md).
             - secretRef:
                 name: planner-exandimport-secrets
           env:
