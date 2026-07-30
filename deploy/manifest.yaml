@@ -1,0 +1,202 @@
+# AKS deployment for the Planner Ex-/Import app.
+#
+# Two components:
+#   * planner-backend  - internal ASP.NET Core API (ClusterIP only, no ingress).
+#                        Receives the user's bearer token from the frontend and
+#                        forwards it to https://graph.microsoft.com, so it needs
+#                        no Azure AD configuration of its own.
+#   * planner-frontend - Blazor Server UI, exposed via the nginx ingress under
+#                        the /planner sub-path on the shared host.
+#
+# Before Azure AD login works you must register this redirect URI on the app
+# registration (client id below):
+#   https://fps-alpaca.westeurope.cloudapp.azure.com/planner/authentication/login-callback
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: planner-exandimport
+---
+# Azure AD / OpenID Connect configuration for the FRONTEND only.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: planner-exandimport-secrets
+  namespace: planner-exandimport
+type: Opaque
+stringData:
+  AZUREAD__INSTANCE: "https://login.microsoftonline.com/"
+  AZUREAD__TENANTID: "92f4dd01-f0ea-4b5f-97f2-505c2945189c"
+  AZUREAD__CLIENTID: "dd0f61d4-5801-402d-8d75-a8e74af8d681"
+  AZUREAD__CLIENTSECRET: "REPLACE_WITH_CLIENT_SECRET"
+  AZUREAD__CALLBACKPATH: "/authentication/login-callback"
+  AZUREAD__AUDIENCE: "https://graph.microsoft.com/"
+---
+# ---------------------------------------------------------------------------
+# Backend
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planner-backend
+  namespace: planner-exandimport
+  labels:
+    app: planner-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planner-backend
+  template:
+    metadata:
+      labels:
+        app: planner-backend
+    spec:
+      containers:
+        - name: planner-backend
+          image: tobiasfenster/planner-exandimport-wasm-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            - name: Logging__LogLevel__Default
+              value: "Information"
+            - name: Logging__LogLevel__Microsoft
+              value: "Warning"
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /echo
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /echo
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      nodeSelector:
+        kubernetes.io/os: linux
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planner-backend
+  namespace: planner-exandimport
+spec:
+  selector:
+    app: planner-backend
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# ---------------------------------------------------------------------------
+# Frontend
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planner-frontend
+  namespace: planner-exandimport
+  labels:
+    app: planner-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planner-frontend
+  template:
+    metadata:
+      labels:
+        app: planner-frontend
+    spec:
+      containers:
+        - name: planner-frontend
+          image: tobiasfenster/planner-exandimport-wasm-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: planner-exandimport-secrets
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            # Serve under the /planner sub-path (matches the ingress path below).
+            - name: PathBase
+              value: "/planner"
+            # Reach the backend via its in-cluster service.
+            - name: BackendBaseUrl
+              value: "http://planner-backend"
+            - name: Logging__LogLevel__Default
+              value: "Information"
+            - name: Logging__LogLevel__Microsoft
+              value: "Warning"
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "1000Mi"
+          livenessProbe:
+            httpGet:
+              # Unauthenticated requests 302-redirect to the login challenge,
+              # which counts as a successful probe (HTTP < 400).
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      nodeSelector:
+        kubernetes.io/os: linux
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planner-frontend
+  namespace: planner-exandimport
+spec:
+  selector:
+    app: planner-frontend
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: planner-frontend-ingress
+  namespace: planner-exandimport
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: fps-alpaca.westeurope.cloudapp.azure.com
+      http:
+        paths:
+          - path: /planner
+            pathType: Prefix
+            backend:
+              service:
+                name: planner-frontend
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - fps-alpaca.westeurope.cloudapp.azure.com
