@@ -26,7 +26,8 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor()
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
     .AddMicrosoftIdentityConsentHandler();
 builder.Services.AddAntDesign();
 builder.Services.AddScoped<BackendService>();
@@ -69,6 +70,10 @@ app.UseCookiePolicy(new CookiePolicyOptions()
 
 app.UseHttpsRedirection();
 
+// Serve physical wwwroot files (incl. _framework/blazor.web.js) up front, before
+// routing/authorization, so the Blazor boot script isn't blocked by the global
+// RequireAuthenticatedUser fallback policy. A Blazor Server app needs this in
+// addition to MapStaticAssets. See the Blazor "static files" docs.
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -79,9 +84,17 @@ app.UseRouting();
 // external https scheme and the /planner path base.
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
+// MapStaticAssets serves the app's static web assets, including the Blazor
+// framework script (blazor.web.js) that boots the interactive server circuit.
+// AllowAnonymous so the global RequireAuthenticatedUser fallback policy doesn't
+// block the boot script and other assets (pages stay protected by the policy
+// and AuthorizeRouteView).
+app.MapStaticAssets().AllowAnonymous();
 app.MapControllers();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapRazorPages();
+app.MapRazorComponents<planner_exandimport_wasm.frontend.App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();

@@ -7,7 +7,10 @@ RUN dotnet restore ./frontend/frontend.csproj
 
 COPY ./shared/ ./shared/
 COPY ./frontend/ ./frontend/
-RUN dotnet publish ./frontend/frontend.csproj --no-restore -c Release -o /app/publish
+# NOTE: do not pass --no-restore here. Publishing with its own restore is what
+# generates the Blazor static web assets (wwwroot/_framework/blazor.web.js);
+# a prior `dotnet restore` + `--no-restore` publish omits them.
+RUN dotnet publish ./frontend/frontend.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 EXPOSE 80
