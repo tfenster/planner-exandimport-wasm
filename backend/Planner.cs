@@ -1,7 +1,6 @@
 using System.Text;
 using System.Linq;
 using System.Text.Json;
-using Fermyon.Spin.Sdk;
 using planner_exandimport_wasm.shared.JSON;
 using planner_exandimport_wasm.backend.JSON;
 using Microsoft.Extensions.Logging;
@@ -36,7 +35,7 @@ namespace planner_exandimport_wasm
             return Task.FromResult<string?>(CreateBucket(targetPlanId, bucketWithDuplicationAdjustments.Bucket, true, httpClient, bucketWithDuplicationAdjustments.DuplicationAdjustments));
         }
 
-        private string? CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, HttpRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
+        private string? CreateBucket(string targetPlanId, Bucket bucket, bool addAssignments, GraphRequest httpClient, DuplicationAdjustments? duplicationAdjustments)
         {
             Handler._logger.LogInformation($"Create bucket {bucket.Name}");
             if (bucket.Tasks == null)
@@ -371,32 +370,28 @@ namespace planner_exandimport_wasm
             throw new Exception("Please select a plan");
         }
 
-        private HttpRequest PreparePlannerClient()
+        private GraphRequest PreparePlannerClient()
         {
             return PrepareClient(PLANNER_SUB);
         }
 
-        private HttpRequest PrepareGroupsClient()
+        private GraphRequest PrepareGroupsClient()
         {
             return PrepareClient(GROUPS_SUB);
         }
 
-        private HttpRequest PrepareUsersClient()
+        private GraphRequest PrepareUsersClient()
         {
             return PrepareClient(USERS_SUB);
         }
 
-        private HttpRequest PrepareClient(string sub)
+        private GraphRequest PrepareClient(string sub)
         {
-            var outboundReq = new HttpRequest
+            return new GraphRequest
             {
                 Url = $"{GRAPH_ENDPOINT}{sub}",
-                Headers = new Dictionary<string, string>
-                {
-                    { "Authorization", $"{token}" },
-                }
+                Token = token,
             };
-            return outboundReq;
         }
     }
 }

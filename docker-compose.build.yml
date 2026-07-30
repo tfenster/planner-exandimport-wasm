@@ -1,10 +1,9 @@
 version: "3.9"
 services:
   backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.backend
-    runtime: io.containerd.spin.v1
   frontend:
     build: 
       context: .
@@ -16,6 +15,5 @@ services:
       - AzureAd__ClientSecret=...
     ports:
       - "3000:80"
-      - "3001:443"
     depends_on:
       - backend

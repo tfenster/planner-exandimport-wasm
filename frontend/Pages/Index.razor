@@ -14,7 +14,7 @@
 <div>
     <Layout>
         <Sider Class="site-layout-background">
-            <Steps Current="current" Direction="vertical">
+            <Steps Current="current" Direction="StepsDirection.Vertical">
                 <Step Title="Select source plan" Description="Select a group and plan as source for duplication" />
                 <Step Title="Select target plan" Description="Select a group and plan as target for duplication" />
                 <Step Title="Make adjustments" Description="Make adjustments (optional)" />
@@ -54,20 +54,18 @@
                     else
                     {
                         <Table DataSource="@groups[current]" TItem="Group" OnExpand="OnRowExpand">
-                            <RowTemplate>
+                            <ChildContent>
                                 <PropertyColumn Property="g=>g!.DisplayName" />
                                 <PropertyColumn Property="g=>g!.Description" />
-                            </RowTemplate>
+                            </ChildContent>
                             <ExpandTemplate Context="rowdata">
                                 <Table @ref="planTables[rowdata.Data.Id + current]" DataSource="rowdata.Data.Plans"
                             Loading="rowdata.Data.Plans==null" TItem="Plan">
-                                    <RowTemplate>
-                                        <PropertyColumn Property="p=>p!.Title" />
-                                        <PropertyColumn Property="p=>p!.CreatedByGraphUser!.DisplayName" Title="Created by" />
-                                        <ActionColumn Title="Select">
-                                            <Button OnClick="p => OnSelect(rowdata.Data, context)">Select</Button>
-                                        </ActionColumn>
-                                    </RowTemplate>
+                                    <PropertyColumn Property="p=>p!.Title" />
+                                    <PropertyColumn Property="p=>p!.CreatedByGraphUser!.DisplayName" Title="Created by" />
+                                    <ActionColumn Title="Select">
+                                        <Button OnClick="p => OnSelect(rowdata.Data, context)">Select</Button>
+                                    </ActionColumn>
                                 </Table>
                             </ExpandTemplate>
                         </Table>
@@ -94,37 +92,37 @@
                     </ul>
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="refDateChecked" OnChange="InvertRefDateChecked">
+                        <Checkbox @bind-Checked="refDateChecked">
                             Adjust start / due date according to reference date difference
                         </Checkbox><br />
-                        <RangePicker TValue="DateTime?[]" @bind-Value="refDates" @bind-Disabled="invertedRefDateChecked" />
+                        <RangePicker @key="refDateChecked" TValue="DateTime?[]" @bind-Value="refDates" Disabled="@(!refDateChecked)" />
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="todayDateChecked" OnChange="InvertTodayDateChecked">
+                        <Checkbox @bind-Checked="todayDateChecked">
                             Adjust start / due date to today's date for this date
                         </Checkbox><br />
-                        <DatePicker TValue="DateTime?" @bind-Value="todayDate" @bind-Disabled="invertedTodayDateChecked" />
+                        <DatePicker @key="todayDateChecked" TValue="DateTime?" @bind-Value="todayDate" Disabled="@(!todayDateChecked)" />
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="copyStartToDueDateChecked" OnChange="InvertCopyStartToDueDateChecked">
+                        <Checkbox @bind-Checked="copyStartToDueDateChecked">
                             Copy start date to due date if due date is empty
                         </Checkbox><br />
                     </p>
                     <p>
-                        <Checkbox @bind-Checked="replaceUsersChecked" OnChange="InvertReplaceUsersChecked">
+                        <Checkbox @bind-Checked="replaceUsersChecked">
                             Replace users
                         </Checkbox><br />
 
-                        <Button OnClick="addRow" Type="primary" Style="margin-bottom:16px"
-                            disabled=@invertedReplaceUsersChecked>
+                        <Button OnClick="addRow" Type="ButtonType.Primary" Style="margin-bottom:16px"
+                            disabled=@(!replaceUsersChecked)>
                             Add mapping
                         </Button>
                     <Table DataSource="listOfData" RowClassName="@(_=>"editable-row")" Bordered>
                     <PropertyColumn Width="30%" Property="c=>c.sourceEmail">
                             @if (editIds[0] == context.Id)
                                 {
-                                <Input Type="text" @bind-Value="context.sourceEmail" @onblur="@((args)=>stopEdit(0))" AutoFocus
-                                                    disabled=@invertedReplaceUsersChecked />
+                                <Input Type="InputType.Text" @bind-Value="context.sourceEmail" @onblur="@((args)=>stopEdit(0))" AutoFocus
+                                                    disabled=@(!replaceUsersChecked) />
                                 }
                                 else
                                 {
@@ -139,8 +137,8 @@
                         <PropertyColumn Width="30%" Property="c=>c.targetEmail">
                                 @if (editIds[1] == context.Id)
                                 {
-                                <Input Type="text" @bind-Value="context.targetEmail" @onblur="@((args)=>stopEdit(1))" AutoFocus
-                                                    disabled=@invertedReplaceUsersChecked />
+                                <Input Type="InputType.Text" @bind-Value="context.targetEmail" @onblur="@((args)=>stopEdit(1))" AutoFocus
+                                                    disabled=@(!replaceUsersChecked) />
                                 }
                                 else
                                 {
@@ -167,11 +165,11 @@
             <div class="steps-action">
                 @if (current > 0)
                 {
-                    <Button Type="primary" OnClick="OnPreClick" disabled=@disableButtons>Previous</Button>
+                    <Button Type="ButtonType.Primary" OnClick="OnPreClick" disabled=@disableButtons>Previous</Button>
                 }
                 @if (current == 2)
                 {
-                    <Button Type="primary" OnClick="OnDuplicateClick" disabled=@disableButtons>
+                    <Button Type="ButtonType.Primary" OnClick="OnDuplicateClick" disabled=@disableButtons>
                         Duplicate
                     </Button>
                 }
@@ -225,15 +223,11 @@
     private Plan[] selectedPlans = new Plan[2];
     private Dictionary<string, Table<Plan>> planTables = new Dictionary<string, Table<Plan>>();
     private bool refDateChecked = false;
-    private bool invertedRefDateChecked = true;
     private DateTime?[] refDates = new DateTime?[2];
     private bool todayDateChecked = false;
-    private bool invertedTodayDateChecked = true;
     private DateTime? todayDate = null;
     private bool replaceUsersChecked = false;
-    private bool invertedReplaceUsersChecked = true;
     private bool copyStartToDueDateChecked = false;
-    private bool invertedCopyStartToDueDateChecked = true;
     private bool disableButtons = false;
 
 
@@ -283,30 +277,6 @@
         StateHasChanged();
     }
 
-    private void InvertRefDateChecked(bool value)
-    {
-        invertedRefDateChecked = !refDateChecked;
-        StateHasChanged();
-    }
-
-    private void InvertTodayDateChecked(bool value)
-    {
-        invertedTodayDateChecked = !todayDateChecked;
-        StateHasChanged();
-    }
-
-    private void InvertReplaceUsersChecked(bool value)
-    {
-        invertedReplaceUsersChecked = !replaceUsersChecked;
-        StateHasChanged();
-    }
-
-    private void InvertCopyStartToDueDateChecked(bool value)
-    {
-        invertedCopyStartToDueDateChecked = !copyStartToDueDateChecked;
-        StateHasChanged();
-    }
-
     void OnPreClick()
     {
         current--;
@@ -346,7 +316,7 @@
         {
             disableButtons = true;
             StateHasChanged();
-            await message.Info("Starting to duplicate plan...");
+            message.Info("Starting to duplicate plan...");
             var sourcePlanDetails = await GroupService.GetPlanDetails(selectedGroups[0].Id, selectedPlans[0].Id);
             var allBuckets = true;
             if (sourcePlanDetails?.Buckets != null)
@@ -356,7 +326,7 @@
                 // create buckets and tasks and then set details for the created tasks (can't be done in one step)
                 foreach (Bucket bucket in sourcePlanDetails.Buckets)
                 {
-                    await message.Info($"Working on bucket {bucket.Name}");
+                    message.Info($"Working on bucket {bucket.Name}");
                     var newBucketId = await GroupService.DuplicateBucket(selectedPlans[1].Id, new BucketWithDuplicationAdjustments()
                         {
                             Bucket = bucket,
@@ -364,27 +334,27 @@
                         });
                     if (newBucketId == null)
                     {
-                        await message.Error($"Failed to duplicate bucket {bucket.Name}");
+                        message.Error($"Failed to duplicate bucket {bucket.Name}");
                         allBuckets = false;
                     }
                     else
                     {
-                        await message.Info($"Bucket {bucket.Name} duplicated successfully");
+                        message.Info($"Bucket {bucket.Name} duplicated successfully");
                     }
                 }
             }
             if (allBuckets)
             {
-                await message.Success("Plan duplicated successfully");
+                message.Success("Plan duplicated successfully");
             }
             else
             {
-                await message.Error("Plan duplication failed");
+                message.Error("Plan duplication failed");
             }
         }
         catch (Exception ex)
         {
-            await message.Error("Plan duplication failed");
+            message.Error("Plan duplication failed");
             Console.WriteLine(ex);
         }
         disableButtons = false;
@@ -450,15 +420,15 @@
             var user = await GroupService.GetGraphUser(email);
             if (user == null || string.IsNullOrEmpty(user.Id))
             {
-                await _message.Warning($"Couldn't find user {email}");
+                _message.Warning($"Couldn't find user {email}");
                 return "";
             }
-            await _message.Success($"Identified user {email}");
+            _message.Success($"Identified user {email}");
             return user.Id;
         }
         catch (Exception)
         {
-            await _message.Error($"Couldn't find user {email}");
+            _message.Error($"Couldn't find user {email}");
             return "";
         }
     }
