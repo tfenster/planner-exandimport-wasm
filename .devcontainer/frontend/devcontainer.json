@@ -14,7 +14,7 @@
 	//		}
 	// }
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "cd frontend && dotnet restore",
+	"postCreateCommand": "cd frontend && dotnet restore && dotnet dev-certs https --trust",
 	"customizations": {
 		"vscode": {
 			"extensions": [

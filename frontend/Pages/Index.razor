@@ -54,20 +54,18 @@
                     else
                     {
                         <Table DataSource="@groups[current]" TItem="Group" OnExpand="OnRowExpand">
-                            <RowTemplate>
+                            <ChildContent>
                                 <PropertyColumn Property="g=>g!.DisplayName" />
                                 <PropertyColumn Property="g=>g!.Description" />
-                            </RowTemplate>
+                            </ChildContent>
                             <ExpandTemplate Context="rowdata">
                                 <Table @ref="planTables[rowdata.Data.Id + current]" DataSource="rowdata.Data.Plans"
                             Loading="rowdata.Data.Plans==null" TItem="Plan">
-                                    <RowTemplate>
-                                        <PropertyColumn Property="p=>p!.Title" />
-                                        <PropertyColumn Property="p=>p!.CreatedByGraphUser!.DisplayName" Title="Created by" />
-                                        <ActionColumn Title="Select">
-                                            <Button OnClick="p => OnSelect(rowdata.Data, context.Data)">Select</Button>
-                                        </ActionColumn>
-                                    </RowTemplate>
+                                    <PropertyColumn Property="p=>p!.Title" />
+                                    <PropertyColumn Property="p=>p!.CreatedByGraphUser!.DisplayName" Title="Created by" />
+                                    <ActionColumn Title="Select">
+                                        <Button OnClick="p => OnSelect(rowdata.Data, context)">Select</Button>
+                                    </ActionColumn>
                                 </Table>
                             </ExpandTemplate>
                         </Table>
