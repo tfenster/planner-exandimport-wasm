@@ -328,7 +328,7 @@
     private RenderFragment PlanLink(Plan? plan) =>@<b>
         @if (PlanUrl(plan) is string url)
         {
-            <a href="@url" target="_blank" rel="noopener" title="Open this plan in Planner">@plan!.Title</a>
+            <a href="@url" target="_blank" rel="noopener noreferrer" title="Open this plan in Planner">@plan!.Title</a>
         }
         else
         {
