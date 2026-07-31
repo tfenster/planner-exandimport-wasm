@@ -8,6 +8,7 @@
 @inject MicrosoftIdentityConsentAndConditionalAccessHandler ConsentHandler
 @inject BackendService GroupService
 @inject IMessageService _message
+@inject IConfiguration Configuration
 
 <PageTitle>Plan Duplication</PageTitle>
 
@@ -26,7 +27,7 @@
                 @if (current > 0)
                 {
                     <div>
-                        <p>Your selected <b>source</b> plan is <b>@selectedPlans[0].Title</b> from group
+                        <p>Your selected <b>source</b> plan is @PlanLink(selectedPlans[0]) from group
                             <b>@selectedGroups[0].DisplayName</b>
                         </p>
                     </div>
@@ -34,7 +35,7 @@
                 @if (current == 2)
                 {
                     <div>
-                        <p>Your selected <b>target</b> plan is <b>@selectedPlans[1].Title</b> from group
+                        <p>Your selected <b>target</b> plan is @PlanLink(selectedPlans[1]) from group
                             <b>@selectedGroups[1].DisplayName</b>
                         </p>
                     </div>
@@ -306,6 +307,34 @@
             _ => "blue"
         };
     }
+
+    /// <summary>
+    /// Link to a plan in Planner. Graph doesn't return a URL for a plan, so it is built from
+    /// the plan id. The tenant id is optional but helps guest / multi-tenant accounts open the
+    /// plan in the right tenant.
+    /// </summary>
+    private string? PlanUrl(Plan? plan)
+    {
+        if (string.IsNullOrEmpty(plan?.Id))
+        {
+            return null;
+        }
+        var url = $"https://planner.cloud.microsoft/webui/plan/{Uri.EscapeDataString(plan.Id)}/view/board";
+        var tenantId = Configuration["AzureAd:TenantId"];
+        return string.IsNullOrWhiteSpace(tenantId) ? url : $"{url}?tid={Uri.EscapeDataString(tenantId)}";
+    }
+
+    /// <summary>Plan title, linked to the plan in Planner if a URL can be built for it.</summary>
+    private RenderFragment PlanLink(Plan? plan) =>@<b>
+        @if (PlanUrl(plan) is string url)
+        {
+            <a href="@url" target="_blank" rel="noopener noreferrer" title="Open this plan in Planner">@plan!.Title</a>
+        }
+        else
+        {
+            @plan?.Title
+        }
+    </b>;
 
     /// <summary>Appends a line to the progress log and renders it immediately.</summary>
     private void LogProgress(string text, ProgressLevel level = ProgressLevel.Info)
