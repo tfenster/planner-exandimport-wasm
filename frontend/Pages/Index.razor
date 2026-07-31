@@ -175,6 +175,47 @@
                 }
 
             </div>
+
+            <!-- Persistent progress log: the duplication can take a while, so the progress is
+                 kept on the page instead of shown as auto-dismissing toasts. That way the
+                 result can still be reviewed afterwards without watching the screen. -->
+            @if (progressLog.Count > 0)
+            {
+                <div class="steps-progress">
+                    <!-- A left-oriented divider indents its text by 5% plus 1em of inner padding.
+                         This class removes both so the label lines up with the buttons and the
+                         timeline below it. -->
+                    <Divider Orientation="DividerOrientation.Left"
+                        Class="ant-divider-no-default-orientation-margin-left">
+                        Duplication progress
+                    </Divider>
+                    @if (progressSummary != null)
+                    {
+                        <p>
+                            <Alert Type="@progressSummaryType" Message="@progressSummary" ShowIcon="true" />
+                        </p>
+                    }
+                    <div class="progress-log">
+                        <Timeline>
+                            @foreach (var entry in progressLog)
+                            {
+                                <TimelineItem Color="@entry.Color">
+                                    <span class="progress-log-time">@entry.Timestamp.ToString("HH:mm:ss")</span>
+                                    @entry.Text
+                                </TimelineItem>
+                            }
+                            @if (duplicationRunning)
+                            {
+                                <TimelineItem Color="@("blue")"><em>Working...</em></TimelineItem>
+                            }
+                        </Timeline>
+                    </div>
+                    @if (!duplicationRunning)
+                    {
+                        <Button OnClick="ClearProgressLog">Clear log</Button>
+                    }
+                </div>
+            }
         </Content>
     </Layout>
 </div>
@@ -190,6 +231,22 @@
 
     .steps-action {
         margin: 0 16px;
+    }
+
+    .steps-progress {
+        margin: 0 16px 16px 16px;
+    }
+
+    .progress-log {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-top: 8px;
+    }
+
+    .progress-log-time {
+        color: #8c8c8c;
+        font-family: monospace;
+        margin-right: 8px;
     }
 
     .editable-cell {
@@ -229,6 +286,41 @@
     private bool replaceUsersChecked = false;
     private bool copyStartToDueDateChecked = false;
     private bool disableButtons = false;
+    private List<ProgressEntry> progressLog = new List<ProgressEntry>();
+    private bool duplicationRunning = false;
+    private string? progressSummary = null;
+    private AlertType progressSummaryType = AlertType.Info;
+
+    /// <summary>Severity of a single entry in the duplication progress log.</summary>
+    private enum ProgressLevel { Info, Success, Warning, Error }
+
+    /// <summary>One line of the duplication progress log, kept on screen after the run finished.</summary>
+    private record ProgressEntry(DateTime Timestamp, string Text, ProgressLevel Level)
+    {
+        /// <summary>Timeline dot color matching the severity of this entry.</summary>
+        public string Color => Level switch
+        {
+            ProgressLevel.Success => "green",
+            ProgressLevel.Warning => "orange",
+            ProgressLevel.Error => "red",
+            _ => "blue"
+        };
+    }
+
+    /// <summary>Appends a line to the progress log and renders it immediately.</summary>
+    private void LogProgress(string text, ProgressLevel level = ProgressLevel.Info)
+    {
+        progressLog.Add(new ProgressEntry(DateTime.Now, text, level));
+        StateHasChanged();
+    }
+
+    /// <summary>Removes the progress log of the previous run.</summary>
+    private void ClearProgressLog()
+    {
+        progressLog.Clear();
+        progressSummary = null;
+        progressSummaryType = AlertType.Info;
+    }
 
 
     public async Task OnSearch()
@@ -315,18 +407,23 @@
         try
         {
             disableButtons = true;
-            StateHasChanged();
-            message.Info("Starting to duplicate plan...");
+            duplicationRunning = true;
+            ClearProgressLog();
+            LogProgress($"Starting to duplicate plan {selectedPlans[0].Title} into {selectedPlans[1].Title}...");
             var sourcePlanDetails = await GroupService.GetPlanDetails(selectedGroups[0].Id, selectedPlans[0].Id);
             var allBuckets = true;
             if (sourcePlanDetails?.Buckets != null)
             {
                 sourcePlanDetails.Buckets = sourcePlanDetails.Buckets.Reverse().ToArray();
 
+                var bucketCount = sourcePlanDetails.Buckets.Length;
+                var bucketNumber = 0;
+
                 // create buckets and tasks and then set details for the created tasks (can't be done in one step)
                 foreach (Bucket bucket in sourcePlanDetails.Buckets)
                 {
-                    message.Info($"Working on bucket {bucket.Name}");
+                    bucketNumber++;
+                    LogProgress($"Working on bucket {bucket.Name} ({bucketNumber} of {bucketCount})");
                     var newBucketId = await GroupService.DuplicateBucket(selectedPlans[1].Id, new BucketWithDuplicationAdjustments()
                         {
                             Bucket = bucket,
@@ -334,29 +431,40 @@
                         });
                     if (newBucketId == null)
                     {
-                        message.Error($"Failed to duplicate bucket {bucket.Name}");
+                        LogProgress($"Failed to duplicate bucket {bucket.Name}", ProgressLevel.Error);
                         allBuckets = false;
                     }
                     else
                     {
-                        message.Info($"Bucket {bucket.Name} duplicated successfully");
+                        LogProgress($"Bucket {bucket.Name} duplicated successfully", ProgressLevel.Success);
                     }
                 }
             }
+            else
+            {
+                LogProgress("The source plan has no buckets, nothing to duplicate", ProgressLevel.Warning);
+            }
             if (allBuckets)
             {
-                message.Success("Plan duplicated successfully");
+                LogProgress("Plan duplicated successfully", ProgressLevel.Success);
+                progressSummary = "Plan duplicated successfully";
+                progressSummaryType = AlertType.Success;
             }
             else
             {
-                message.Error("Plan duplication failed");
+                LogProgress("Plan duplication failed", ProgressLevel.Error);
+                progressSummary = "Plan duplication failed, see the log below for the buckets that could not be duplicated";
+                progressSummaryType = AlertType.Error;
             }
         }
         catch (Exception ex)
         {
-            message.Error("Plan duplication failed");
+            LogProgress($"Plan duplication failed: {ex.Message}", ProgressLevel.Error);
+            progressSummary = "Plan duplication failed";
+            progressSummaryType = AlertType.Error;
             Console.WriteLine(ex);
         }
+        duplicationRunning = false;
         disableButtons = false;
         StateHasChanged();
     }
