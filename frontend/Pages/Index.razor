@@ -411,16 +411,25 @@
             ClearProgressLog();
             LogProgress($"Starting to duplicate plan {selectedPlans[0].Title} into {selectedPlans[1].Title}...");
             var sourcePlanDetails = await GroupService.GetPlanDetails(selectedGroups[0].Id, selectedPlans[0].Id);
-            var allBuckets = true;
-            if (sourcePlanDetails?.Buckets != null)
+            var buckets = sourcePlanDetails?.Buckets;
+            // Nothing to duplicate is neither a success nor a failure, so it gets its own
+            // summary instead of falling through to the success path below.
+            if (buckets == null || buckets.Length == 0)
             {
-                sourcePlanDetails.Buckets = sourcePlanDetails.Buckets.Reverse().ToArray();
+                LogProgress("The source plan has no buckets, nothing to duplicate", ProgressLevel.Warning);
+                progressSummary = "Nothing to duplicate: the source plan has no buckets";
+                progressSummaryType = AlertType.Warning;
+            }
+            else
+            {
+                buckets = buckets.Reverse().ToArray();
 
-                var bucketCount = sourcePlanDetails.Buckets.Length;
+                var bucketCount = buckets.Length;
                 var bucketNumber = 0;
+                var allBuckets = true;
 
                 // create buckets and tasks and then set details for the created tasks (can't be done in one step)
-                foreach (Bucket bucket in sourcePlanDetails.Buckets)
+                foreach (Bucket bucket in buckets)
                 {
                     bucketNumber++;
                     LogProgress($"Working on bucket {bucket.Name} ({bucketNumber} of {bucketCount})");
@@ -439,22 +448,19 @@
                         LogProgress($"Bucket {bucket.Name} duplicated successfully", ProgressLevel.Success);
                     }
                 }
-            }
-            else
-            {
-                LogProgress("The source plan has no buckets, nothing to duplicate", ProgressLevel.Warning);
-            }
-            if (allBuckets)
-            {
-                LogProgress("Plan duplicated successfully", ProgressLevel.Success);
-                progressSummary = "Plan duplicated successfully";
-                progressSummaryType = AlertType.Success;
-            }
-            else
-            {
-                LogProgress("Plan duplication failed", ProgressLevel.Error);
-                progressSummary = "Plan duplication failed, see the log below for the buckets that could not be duplicated";
-                progressSummaryType = AlertType.Error;
+
+                if (allBuckets)
+                {
+                    LogProgress("Plan duplicated successfully", ProgressLevel.Success);
+                    progressSummary = "Plan duplicated successfully";
+                    progressSummaryType = AlertType.Success;
+                }
+                else
+                {
+                    LogProgress("Plan duplication failed", ProgressLevel.Error);
+                    progressSummary = "Plan duplication failed, see the log below for the buckets that could not be duplicated";
+                    progressSummaryType = AlertType.Error;
+                }
             }
         }
         catch (Exception ex)
